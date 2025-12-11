@@ -1,0 +1,174 @@
+
+// assets/script.js
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Tab Switching
+    window.switchTab = function (tabName) {
+        // Update Buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        const activeBtn = document.querySelector(`.tab-btn[onclick="switchTab('${tabName}')"]`);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        // Update Content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    };
+
+    // File Drag & Drop
+    const fileDropZone = document.getElementById('fileDropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    if (fileDropZone && fileInput) {
+        fileDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileDropZone.style.borderColor = 'var(--primary-color)';
+            fileDropZone.style.backgroundColor = '#FFF7ED';
+        });
+
+        fileDropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            fileDropZone.style.borderColor = '#FDBA74';
+            fileDropZone.style.backgroundColor = 'rgba(255, 247, 237, 0.5)';
+        });
+
+        fileDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileDropZone.style.borderColor = '#FDBA74';
+            fileDropZone.style.backgroundColor = 'rgba(255, 247, 237, 0.5)';
+
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                fileDropZone.querySelector('p').textContent = `Selected: ${e.dataTransfer.files[0].name}`;
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                fileDropZone.querySelector('p').textContent = `Selected: ${fileInput.files[0].name}`;
+            }
+        });
+    }
+
+    // Image OCR with Tesseract.js
+    const startOcrBtn = document.getElementById('startOcrBtn');
+    const imageInput = document.getElementById('imageInput');
+    const imageForm = document.getElementById('imageForm');
+    const ocrStatus = document.getElementById('ocr-status');
+    const ocrProgress = document.getElementById('ocr-progress');
+    const extractedTextarea = document.getElementById('imageExtractedText');
+
+    if (startOcrBtn && imageInput) {
+        startOcrBtn.addEventListener('click', async () => {
+            if (!imageInput.files || !imageInput.files[0]) {
+                alert('Please select an image first.');
+                return;
+            }
+
+            const imageFile = imageInput.files[0];
+
+            ocrStatus.classList.remove('hidden');
+            ocrProgress.textContent = "Initializing OCR Engine...";
+            startOcrBtn.disabled = true;
+
+            try {
+                const worker = await Tesseract.createWorker('eng');
+                // Load multiple languages for better detection
+                await worker.loadLanguage('eng+spa+fra+deu');
+                await worker.initialize('eng+spa+fra+deu');
+
+                ocrProgress.textContent = "Recognizing text... (This may take a moment)";
+
+                const { data: { text } } = await worker.recognize(imageFile);
+
+                await worker.terminate();
+
+                if (!text || text.trim().length === 0) {
+                    throw new Error("No text found in image.");
+                }
+
+                ocrProgress.textContent = "Text extracted! Sending for simplification...";
+                extractedTextarea.value = text;
+                imageForm.submit();
+
+            } catch (error) {
+                console.error(error);
+                ocrProgress.textContent = "Error: " + error.message;
+                startOcrBtn.disabled = false;
+            }
+        });
+    }
+
+    // Chat Functionality
+    const chatInput = document.getElementById('chatInput');
+    const sendChatBtn = document.getElementById('sendChatBtn');
+    const chatBox = document.getElementById('chatBox');
+
+    if (chatInput && sendChatBtn && chatBox) {
+        // Scroll to bottom initially
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        function addMessage(text, sender) {
+            const div = document.createElement('div');
+            div.classList.add('chat-message', sender);
+            div.textContent = text;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // UI Update
+            addMessage(message, 'user');
+            chatInput.value = '';
+
+            // Show loading state (could be improved)
+            const loadingDiv = document.createElement('div');
+            loadingDiv.classList.add('chat-message', 'ai');
+            loadingDiv.textContent = '...';
+            loadingDiv.id = 'chat-loading';
+            chatBox.appendChild(loadingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                // Send to Backend
+                const formData = new FormData();
+                formData.append('type', 'chat_question');
+                formData.append('question', message);
+
+                const response = await fetch('process.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                // Remove loading
+                const loader = document.getElementById('chat-loading');
+                if (loader) loader.remove();
+
+                if (data.status === 'success') {
+                    addMessage(data.answer, 'ai');
+                } else {
+                    addMessage("Error: " + data.message, 'ai');
+                }
+
+            } catch (error) {
+                const loader = document.getElementById('chat-loading');
+                if (loader) loader.remove();
+                addMessage("Connection error. Please try again.", 'ai');
+                console.error(error);
+            }
+        }
+
+        sendChatBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    }
+});
