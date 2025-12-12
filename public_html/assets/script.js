@@ -37,18 +37,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
         fileDropZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            fileDropZone.style.borderColor = '#FDBA74';
-            fileDropZone.style.backgroundColor = 'rgba(255, 247, 237, 0.5)';
 
             if (e.dataTransfer.files.length) {
                 fileInput.files = e.dataTransfer.files;
-                fileDropZone.querySelector('p').textContent = `Selected: ${e.dataTransfer.files[0].name}`;
+                const fileName = e.dataTransfer.files[0].name;
+                const dropZoneText = fileDropZone.querySelector('p');
+                dropZoneText.innerHTML = `
+                    <span style="color: #10B981; font-weight: 600;">
+                        ✓ Uploaded successfully
+                    </span><br>
+                    <span style="font-size: 0.95rem; color: var(--text-muted);">
+                        ${fileName}
+                    </span>
+                `;
+                fileDropZone.style.borderColor = '#10B981';
+                fileDropZone.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
             }
         });
 
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length) {
-                fileDropZone.querySelector('p').textContent = `Selected: ${fileInput.files[0].name}`;
+                const fileName = fileInput.files[0].name;
+                const dropZoneText = fileDropZone.querySelector('p');
+                dropZoneText.innerHTML = `
+                    <span style="color: #10B981; font-weight: 600;">
+                        ✓ Uploaded successfully
+                    </span><br>
+                    <span style="font-size: 0.95rem; color: var(--text-muted);">
+                        ${fileName}
+                    </span>
+                `;
+                fileDropZone.style.borderColor = '#10B981';
+                fileDropZone.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
             }
         });
     }

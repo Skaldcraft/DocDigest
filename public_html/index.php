@@ -115,6 +115,7 @@
         </footer>
     </div>
 
+    <script src="assets/processing-timer.js"></script>
     <script src="assets/script.js"></script>
 </body>
 
