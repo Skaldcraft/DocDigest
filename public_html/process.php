@@ -147,7 +147,14 @@ function askGemini($instruction, $contextSource)
     }
 
     if ($httpCode !== 200) {
-        $errorDetails = $ch_response ? " Response: " . substr($ch_response, 0, 200) : "";
+        // Log detailed error for debugging
+        $errorLog = "API Error Details:\n";
+        $errorLog .= "HTTP Code: $httpCode\n";
+        $errorLog .= "URL: $url\n";
+        $errorLog .= "Response: " . ($ch_response ? $ch_response : "No response") . "\n";
+        error_log($errorLog);
+
+        $errorDetails = $ch_response ? " | Response: " . substr($ch_response, 0, 500) : "";
         return "AI Service Error (HTTP $httpCode).$errorDetails";
     }
 
@@ -328,7 +335,7 @@ if (!empty($textToSimplify)) {
                         <?php
                         // Try to parse as JSON for structured output
                         $jsonData = json_decode($finalOutput, true);
-                        
+
                         if ($jsonData && isset($jsonData['sections'])) {
                             // Structured output
                             if (isset($jsonData['document_title'])) {
@@ -336,24 +343,24 @@ if (!empty($textToSimplify)) {
                                 echo htmlspecialchars($jsonData['document_title']);
                                 echo '</div>';
                             }
-                            
+
                             foreach ($jsonData['sections'] as $section) {
                                 $isBoilerplate = ($section['type'] ?? 'relevant') === 'boilerplate';
                                 $sectionClass = $isBoilerplate ? 'section-boilerplate' : 'section-relevant';
-                                
-                                echo '<div class="document-section ' . $sectionClass . '" style="margin-bottom: 1.5rem; padding: 1.5rem; border-radius: 12px; ' . 
-                                     ($isBoilerplate ? 'background: rgba(156, 163, 175, 0.1); border-left: 4px solid #9CA3AF;' : 'background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(59, 130, 246, 0.05)); border-left: 4px solid var(--primary);') . '">';
-                                
-                                echo '<h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.75rem; color: ' . 
-                                     ($isBoilerplate ? '#6B7280' : 'var(--primary)') . ';">';
+
+                                echo '<div class="document-section ' . $sectionClass . '" style="margin-bottom: 1.5rem; padding: 1.5rem; border-radius: 12px; ' .
+                                    ($isBoilerplate ? 'background: rgba(156, 163, 175, 0.1); border-left: 4px solid #9CA3AF;' : 'background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(59, 130, 246, 0.05)); border-left: 4px solid var(--primary);') . '">';
+
+                                echo '<h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.75rem; color: ' .
+                                    ($isBoilerplate ? '#6B7280' : 'var(--primary)') . ';">';
                                 echo htmlspecialchars($section['title']);
                                 echo '</h3>';
-                                
-                                echo '<div style="line-height: 1.7; white-space: pre-wrap; color: ' . 
-                                     ($isBoilerplate ? '#6B7280' : 'var(--text-primary)') . ';">';
+
+                                echo '<div style="line-height: 1.7; white-space: pre-wrap; color: ' .
+                                    ($isBoilerplate ? '#6B7280' : 'var(--text-primary)') . ';">';
                                 echo htmlspecialchars($section['summary']);
                                 echo '</div>';
-                                
+
                                 echo '</div>';
                             }
                         } else {
