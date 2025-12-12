@@ -176,43 +176,39 @@ function simplifyTextWithAI($text)
 
         "**CRITICAL CONTENT RULES:**\n" .
         "1. **TONE**: Use IMPERSONAL language ('" . 'Se ha decidido...' . "', '" . 'El titular...' . "', '" . 'La solicitud...' . "'). NEVER address the user as '" . 'tÃº' . "' or '" . 'usted' . "'.\n" .
-        "2. **STRUCTURE**: You MUST preserve the ORIGINAL SECTION TITLES of the document (e.g., '" . 'ANTECEDENTES' . "', '" . 'ACUERDO' . "', '" . 'RECURSOS' . "'). Do not invent new headers unless the document has absolutely no structure.\n" .
-        "3. **PRIVACY**: REMOVE all personal data (Names, NIF/IDs, Phone numbers, Emails, Addresses). Replace with generic terms like '" . '[El titular]' . "', '" . '[Municipio]' . "'.\n" .
-        "4. **NO FILLER**: \n" .
-        "   - DELETE office addresses, verification codes (CSV), names of officials who signed.\n" .
-        "   - DELETE generic legal definitions ('" . 'Se detallan las leyes...' . "').\n" .
-        "   - DELETE 'procedural' narration ('" . 'Aparece que se basan en...' . "').\n" .
-        "   - KEEP concrete facts: Decisions, Dates, Amounts, Grants, Deadlines.\n\n" .
+        "2. **STRUCTURE**: You MUST preserve the ORIGINAL SECTION TITLES.\n" .
+        "3. **PRIVACY**: REMOVE all personal names, IDs, phones, emails, addresses. Use generic terms like '" . '[El titular]' . "'.\n" .
+        "4. **DEADLINES (CRITICAL)**: You MUST hunt for deadlines, even implicit ones.\n" .
+        "   - If text says '" . 'un mes desde la notificaciÃ³n' . "', extract: '" . 'Plazo: Un mes a partir del dÃ­a siguiente a la recepciÃ³n.' . "'\n" .
+        "   - If text says '" . '10 dÃ­as hÃ¡biles' . "', extract: '" . 'Plazo: 10 dÃ­as hÃ¡biles.' . "'\n" .
+        "   - If text says '" . 'se puede presentar recurso' . "' without a specific date, LOOK CLOSER for general timeframes defined in the 'RECURSOS' section.\n" .
+        "5. **NO FILLER**: DELETE office addresses, verification codes, officials' names, and list of laws.\n\n" .
 
         "**DRAFTING RULES:**\n" .
-        "- **Concise**: '" . 'No se ha aceptado tu solicitud' . "' is better than '" . 'Se ha decidido rechazar...' . "' (Avoid '" . 'Esto significa que...' . "').\n" .
+        "- **Concise**: Short paragraphs.\n" .
         "- **Direct**: State the outcome immediately.\n" .
-        "- **Deadlines**: If a deadline is mentioned (e.g., '" . 'un mes' . "'), EXTRACT IT explicitly. It is crucial.\n" .
-        "- **Contextual Help**: Only suggest '" . 'puedes pedirme una lista de documentos' . "' if the text explicitly asks for documentation to be submitted.\n\n" .
+        "- **Actions**: Clearly state what can be done next.\n\n" .
 
-        "**EXAMPLES OF EXTRACTION:**\n\n" .
+        "**EXAMPLES:**\n\n" .
 
-        "ðŸ”´ ORIGINAL: '" . 'TÃº, D. Juan con NIF X, presentaste solicitud el 6/2/21. El 16/5/21 un equipo te valorÃ³...' . "'\n" .
-        "ðŸŸ¢ RESULT: '" . 'El titular presentÃ³ una solicitud de reconocimiento de dependencia el 6 de febrero de 2021.\\nSe realizÃ³ la valoraciÃ³n el 16 de mayo de 2021 y el informe tÃ©cnico confirmÃ³ limitaciones para las actividades bÃ¡sicas.' . "'\n\n" .
+        "ðŸ”´ ORIGINAL: '" . 'Se puede interponer recurso de reposiciÃ³n... en el plazo de un mes contado a partir del dÃ­a siguiente...' . "'\n" .
+        "ðŸŸ¢ RESULT: '" . 'Esta resoluciÃ³n se puede recurrir.\\nPlazo: Un mes a partir del dÃ­a siguiente a la recepciÃ³n de la notificaciÃ³n.\\nEs importante revisar los requisitos.' . "'\n\n" .
 
-        "ðŸ”´ ORIGINAL: '" . 'ACUERDO: Desestimar la solicitud. Fundamentos: Ley 44/2000...' . "'\n" .
-        "ðŸŸ¢ RESULT: '" . 'La Agencia Tributaria no ha aceptado las alegaciones presentadas.' . "' (Skip the laws)\n\n" .
-
-        "ðŸ”´ ORIGINAL: '" . 'Se puede interponer recurso de reposiciÃ³n en el plazo de un mes...' . "'\n" .
-        "ðŸŸ¢ RESULT: '" . 'Esta resoluciÃ³n se puede recurrir.\\nPlazo: Un mes a partir del dÃ­a siguiente a la recepciÃ³n.\\nSi se decide recurrir, es importante revisar bien los requisitos.' . "'\n\n" .
+        "ðŸ”´ ORIGINAL: '" . 'Contra esta resoluciÃ³n, que no pone fin a la vÃ­a administrativa...' . "'\n" .
+        "ðŸŸ¢ RESULT: '" . 'Se puede presentar recurso de alzada en el plazo de un mes.' . "'\n\n" .
 
         "**OUTPUT FORMAT (JSON):**\n" .
         "{\n" .
-        "  \"document_title\": \"Descriptive Title (e.g., '" . 'Respuesta a solicitud de rectificaciÃ³n' . "')\",\n" .
+        "  \"document_title\": \"Descriptive Title\",\n" .
         "  \"sections\": [\n" .
         "    {\n" .
         "      \"title\": \"EXACT ORIGINAL HEADER\",\n" .
         "      \"type\": \"relevant\",\n" .
-        "      \"content\": \"Impersonal, concise extracted info.\"\n" .
+        "      \"content\": \"Impersonal content with EXPLICIT DEADLINES extracted.\"\n" .
         "    }\n" .
         "  ]\n" .
         "}\n\n" .
-        "Rules for 'type': Use 'boilerplate' ONLY for sections that are purely legal strings with no specific info (which should properly be skipped or minimized).";
+        "Critical: Output VALID JSON only. Do not wrap in markdown blocks.";
 
     return askGemini($instruction, $text);
 }
@@ -353,7 +349,13 @@ if (!empty($textToSimplify)) {
                     <div class="output-content">
                         <?php
                         // Try to parse as JSON for structured output
-                        $jsonData = json_decode($finalOutput, true);
+                        $cleanOutput = preg_replace('/^```json\s*|\s*```$/s', '', trim($finalOutput));
+                        $jsonData = json_decode($cleanOutput, true);
+                        
+                        // Fallback: Try decoding original if cleaning failed (though cleaning usually helps)
+                        if (!$jsonData) {
+                            $jsonData = json_decode($finalOutput, true);
+                        }
 
                         if ($jsonData && isset($jsonData['sections'])) {
                             // Structured output
