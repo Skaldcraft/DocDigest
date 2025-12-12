@@ -24,7 +24,7 @@
                 <img src="https://flagcdn.com/24x18/cn.png" alt="Chinese" title="Chinese">
             </div>
             <h1 class="logo">DocDigest</h1>
-            <p class="tagline">Turn bureaucratic documents into plain language.</p>
+            <p class="tagline">Understand official documents, fast and easy.</p>
         </header>
 
         <main class="app-interface">

@@ -1,23 +1,22 @@
-/* CSS Variables - Warmer Aesthetic (Amber/Orange/Cream) */
+/* CSS Variables - Warm Beige/Coral Palette */
 :root {
-    --primary-color: #EA580C;
-    /* Warm Orange */
-    --primary-hover: #C2410C;
-    --accent-color: #F59E0B;
-    /* Amber */
-    --bg-gradient-start: #FFF7ED;
-    /* Very light orange/cream */
-    --bg-gradient-end: #FFEDD5;
-    /* Light orange */
+    --primary-color: #CC7B67;
+    /* Coral/Terracotta - Main content color */
+    --primary-hover: #B86B58;
+    --accent-color: #FF6B6B;
+    /* Bright coral - Actions/CTA */
+    --bg-gradient-start: #F7F4EA;
+    /* Warm beige background */
+    --bg-gradient-end: #F7F4EA;
+    /* Consistent beige */
     --card-bg: rgba(255, 255, 255, 0.95);
-    --card-border: rgba(255, 255, 255, 0.6);
-    --text-main: #431407;
-    /* Dark reddish brown for text */
-    --text-muted: #78350F;
+    --card-border: rgba(204, 123, 103, 0.2);
+    --text-main: #5A4A42;
+    /* Warm dark brown for text */
+    --text-muted: #8B7A6F;
     --border-radius: 24px;
-    --shadow-sm: 0 4px 6px -1px rgba(67, 20, 7, 0.05);
-    /* Warmer shadow tone */
-    --shadow-lg: 0 20px 25px -5px rgba(67, 20, 7, 0.1), 0 10px 10px -5px rgba(67, 20, 7, 0.04);
+    --shadow-sm: 0 4px 6px -1px rgba(90, 74, 66, 0.05);
+    --shadow-lg: 0 20px 25px -5px rgba(90, 74, 66, 0.1), 0 10px 10px -5px rgba(90, 74, 66, 0.04);
     --font-family: 'Outfit', sans-serif;
 }
 
@@ -81,6 +80,7 @@ body::before {
     font-weight: 800;
     letter-spacing: -0.05em;
     background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.5rem;
