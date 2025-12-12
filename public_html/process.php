@@ -29,10 +29,86 @@ function readDocx($filename)
     return "Error reading .docx file. Ensure it is a valid format.";
 }
 
-// Helper Function: Parse Text from PDF (Very Basic Fallback)
+// Helper Function: Parse Text from PDF (Native PHP Implementation)
 function readPdf($filename)
 {
-    return "PDF Content Extraction requires 'pdftotext' or a dedicated PHP library. Please copy-paste the text for best results.";
+    if (!file_exists($filename)) {
+        return "PDF file not found.";
+    }
+
+    // Read the PDF file
+    $content = file_get_contents($filename);
+
+    if (!$content) {
+        return "Error reading PDF file.";
+    }
+
+    // Check if it's a valid PDF
+    if (strpos($content, '%PDF') !== 0) {
+        return "Invalid PDF file format.";
+    }
+
+    // Extract text from PDF
+    // This is a simplified approach that works for many text-based PDFs
+    $text = '';
+
+    // Method 1: Extract text between BT (Begin Text) and ET (End Text) operators
+    if (preg_match_all('/BT\s*(.*?)\s*ET/s', $content, $matches)) {
+        foreach ($matches[1] as $textBlock) {
+            // Extract text from Tj and TJ operators
+            if (preg_match_all('/\((.*?)\)\s*Tj/s', $textBlock, $textMatches)) {
+                foreach ($textMatches[1] as $t) {
+                    $text .= $t . ' ';
+                }
+            }
+            if (preg_match_all('/\[(.*?)\]\s*TJ/s', $textBlock, $textMatches)) {
+                foreach ($textMatches[1] as $t) {
+                    // Remove positioning numbers and extract text
+                    $cleaned = preg_replace('/\(([^)]+)\)/', '$1 ', $t);
+                    $cleaned = preg_replace('/-?\d+/', '', $cleaned);
+                    $text .= $cleaned;
+                }
+            }
+        }
+    }
+
+    // Method 2: Try to extract from stream objects if Method 1 didn't work well
+    if (strlen(trim($text)) < 50) {
+        // Look for text in stream objects
+        if (preg_match_all('/stream\s*\n(.*?)\nendstream/s', $content, $streams)) {
+            foreach ($streams[1] as $stream) {
+                // Try to decompress if it's a FlateDecode stream
+                $decompressed = @gzuncompress($stream);
+                if ($decompressed !== false) {
+                    $stream = $decompressed;
+                }
+
+                // Extract readable text
+                if (preg_match_all('/\((.*?)\)/s', $stream, $textMatches)) {
+                    foreach ($textMatches[1] as $t) {
+                        if (strlen($t) > 2 && ctype_print(str_replace(["\n", "\r", "\t"], '', $t))) {
+                            $text .= $t . ' ';
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Clean up the extracted text
+    $text = str_replace(['\\(', '\\)', '\\n', '\\r', '\\t'], ['(', ')', "\n", "\r", "\t"], $text);
+    $text = preg_replace('/\s+/', ' ', $text); // Normalize whitespace
+    $text = trim($text);
+
+    if (strlen($text) < 10) {
+        return "Could not extract text from PDF. The PDF might be:\n" .
+            "- Scanned images (use the Image Upload tab with OCR instead)\n" .
+            "- Encrypted or protected\n" .
+            "- Using complex formatting\n\n" .
+            "Try copying the text manually and using the 'Paste Text' option.";
+    }
+
+    return $text;
 }
 
 // Real Gemini API Simplification
@@ -71,7 +147,8 @@ function askGemini($instruction, $contextSource)
     }
 
     if ($httpCode !== 200) {
-        return "AI Service Error (HTTP $httpCode).";
+        $errorDetails = $ch_response ? " Response: " . substr($ch_response, 0, 200) : "";
+        return "AI Service Error (HTTP $httpCode).$errorDetails";
     }
 
     $json = json_decode($ch_response, true);
@@ -80,7 +157,8 @@ function askGemini($instruction, $contextSource)
     if (isset($json['candidates'][0]['content']['parts'][0]['text'])) {
         return $json['candidates'][0]['content']['parts'][0]['text'];
     } else {
-        return "Could not parse AI response.";
+        $debugInfo = $ch_response ? " Debug: " . substr($ch_response, 0, 300) : "";
+        return "Could not parse AI response.$debugInfo";
     }
 }
 
