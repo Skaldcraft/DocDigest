@@ -115,7 +115,8 @@ function readPdf($filename)
 function askGemini($instruction, $contextSource)
 {
     $apiKey = AI_API_KEY;
-    $url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" . $apiKey;
+    // Note: gemini-1.5-flash is only available in v1beta, not v1
+    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey;
 
     // Prompt Engineering
     $combinedPrompt = $instruction . "\n\nSource Text:\n" . $contextSource;
