@@ -115,7 +115,7 @@ function readPdf($filename)
 function askGemini($instruction, $contextSource)
 {
     $apiKey = AI_API_KEY;
-    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey;
+    $url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" . $apiKey;
 
     // Prompt Engineering
     $combinedPrompt = $instruction . "\n\nSource Text:\n" . $contextSource;
@@ -164,11 +164,29 @@ function askGemini($instruction, $contextSource)
 
 function simplifyTextWithAI($text)
 {
-    $instruction = "You are DocDigest. Analyze the following bureaucratic or official text. " .
-        "Extract the absolute essential information (obligations, rights, deadlines, key facts). " .
-        "Ignore legal jargon unless necessary. Output in clear, plain language. " .
-        "Use short paragraphs and bullet points. " .
-        "IMPORTANT: Detect the language of the source text (English, Spanish, French, German, Chinese, Hindi, Arabic, etc.) and write the summary in that EXACT SAME language.";
+    $instruction = "You are DocDigest, an expert at simplifying bureaucratic and official documents. " .
+        "Analyze the following document and extract its main sections. " .
+        "\n\n**INSTRUCTIONS:**\n" .
+        "1. Identify all major sections/headings in the document (e.g., ANTECEDENTES, ACUERDO, RECURSOS, NORMAS APLICABLES, etc.)\n" .
+        "2. For each section, determine if it contains RELEVANT information for the reader or if it's just LEGAL BOILERPLATE (lists of laws, regulations, formal references)\n" .
+        "3. Output in JSON format with this structure:\n" .
+        "{\n" .
+        "  \"document_title\": \"Brief title of the document\",\n" .
+        "  \"sections\": [\n" .
+        "    {\n" .
+        "      \"title\": \"Section name\",\n" .
+        "      \"type\": \"relevant\" or \"boilerplate\",\n" .
+        "      \"summary\": \"Clear, simplified explanation in plain language (if relevant) OR a brief note like 'Detalle de las leyes y normas relacionadas con el caso' (if boilerplate)\"\n" .
+        "    }\n" .
+        "  ]\n" .
+        "}\n\n" .
+        "**RULES:**\n" .
+        "- Skip sections with no useful information (like 'IDENTIFICACIÓN DEL DOCUMENTO')\n" .
+        "- For RELEVANT sections: Provide a clear, simplified explanation focusing on obligations, rights, deadlines, and key facts\n" .
+        "- For BOILERPLATE sections (legal references, law lists): Just provide a brief meta-description like 'Se detallan las leyes y normativas aplicables a esta resolución'\n" .
+        "- Use short paragraphs and bullet points for clarity\n" .
+        "- IMPORTANT: Detect the language of the source text and write ALL output (titles, summaries) in that EXACT SAME language\n" .
+        "- Output ONLY valid JSON, no additional text before or after";
 
     return askGemini($instruction, $text);
 }
@@ -307,7 +325,44 @@ if (!empty($textToSimplify)) {
                     <?php endif; ?>
 
                     <div class="output-content">
-                        <?php echo htmlspecialchars($finalOutput); ?>
+                        <?php
+                        // Try to parse as JSON for structured output
+                        $jsonData = json_decode($finalOutput, true);
+                        
+                        if ($jsonData && isset($jsonData['sections'])) {
+                            // Structured output
+                            if (isset($jsonData['document_title'])) {
+                                echo '<div class="document-title" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem; color: var(--primary);">';
+                                echo htmlspecialchars($jsonData['document_title']);
+                                echo '</div>';
+                            }
+                            
+                            foreach ($jsonData['sections'] as $section) {
+                                $isBoilerplate = ($section['type'] ?? 'relevant') === 'boilerplate';
+                                $sectionClass = $isBoilerplate ? 'section-boilerplate' : 'section-relevant';
+                                
+                                echo '<div class="document-section ' . $sectionClass . '" style="margin-bottom: 1.5rem; padding: 1.5rem; border-radius: 12px; ' . 
+                                     ($isBoilerplate ? 'background: rgba(156, 163, 175, 0.1); border-left: 4px solid #9CA3AF;' : 'background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(59, 130, 246, 0.05)); border-left: 4px solid var(--primary);') . '">';
+                                
+                                echo '<h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.75rem; color: ' . 
+                                     ($isBoilerplate ? '#6B7280' : 'var(--primary)') . ';">';
+                                echo htmlspecialchars($section['title']);
+                                echo '</h3>';
+                                
+                                echo '<div style="line-height: 1.7; white-space: pre-wrap; color: ' . 
+                                     ($isBoilerplate ? '#6B7280' : 'var(--text-primary)') . ';">';
+                                echo htmlspecialchars($section['summary']);
+                                echo '</div>';
+                                
+                                echo '</div>';
+                            }
+                        } else {
+                            // Fallback to plain text if JSON parsing fails
+                            echo '<div style="white-space: pre-wrap; line-height: 1.7;">';
+                            echo htmlspecialchars($finalOutput);
+                            echo '</div>';
+                        }
+                        ?>
                     </div>
 
                     <div class="actions" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
