@@ -1,4 +1,4 @@
-// Multi-language support with Privacy Translation
+// Multi-language support with Privacy Translation & Result Page
 const translations = {
     en: {
         tagline: "Understand official documents, fast and easy.",
@@ -23,7 +23,11 @@ const translations = {
         multilingualDesc: "Works in any major language.",
         privacyPolicy: "Privacy Policy",
         uploadedSuccess: "✓ Uploaded successfully",
-        redactedSensitive: "Sensitive information (emails, phones, IDs) has been redacted for your privacy."
+        redactedSensitive: "Sensitive information (emails, phones, IDs) has been redacted for your privacy.",
+        resultTitle: "Simplified Document",
+        chatTitle: "💬 Ask Questions about this Document",
+        chatSubtitle: "Need to clarify something? Ask DocDigest below.",
+        sendChatBtn: "Send"
     },
     es: {
         tagline: "Entiende documentos oficiales, rápido y fácil.",
@@ -48,7 +52,11 @@ const translations = {
         multilingualDesc: "Funciona en cualquier idioma principal.",
         privacyPolicy: "Política de Privacidad",
         uploadedSuccess: "✓ Subido exitosamente",
-        redactedSensitive: "Se ha ocultado información sensible (emails, teléfonos, DNI) por tu privacidad."
+        redactedSensitive: "Se ha ocultado información sensible (emails, teléfonos, DNI) por tu privacidad.",
+        resultTitle: "Documento Simplificado",
+        chatTitle: "💬 Haz preguntas sobre este documento",
+        chatSubtitle: "¿Necesitas aclarar algo? Pregúntale a DocDigest abajo.",
+        sendChatBtn: "Enviar"
     },
     fr: {
         tagline: "Comprenez les documents officiels, rapidement et facilement.",
@@ -73,7 +81,11 @@ const translations = {
         multilingualDesc: "Fonctionne dans toutes les langues principales.",
         privacyPolicy: "Politique de Confidentialité",
         uploadedSuccess: "✓ Téléchargé avec succès",
-        redactedSensitive: "Les informations sensibles (emails, téléphones, identifiants) ont été masquées pour votre confidentialité."
+        redactedSensitive: "Les informations sensibles (emails, téléphones, identifiants) ont été masquées pour votre confidentialité.",
+        resultTitle: "Document Simplifié",
+        chatTitle: "💬 Posez des questions sur ce document",
+        chatSubtitle: "Besoin de clarifier quelque chose ? Demandez à DocDigest ci-dessous.",
+        sendChatBtn: "Envoyer"
     },
     de: {
         tagline: "Verstehen Sie offizielle Dokumente, schnell und einfach.",
@@ -98,7 +110,11 @@ const translations = {
         multilingualDesc: "Funktioniert in jeder Hauptsprache.",
         privacyPolicy: "Datenschutzrichtlinie",
         uploadedSuccess: "✓ Erfolgreich hochgeladen",
-        redactedSensitive: "Sensible Informationen (E-Mails, Telefonnummern, Ausweise) wurden zu Ihrer Privatsphäre geschwärzt."
+        redactedSensitive: "Sensible Informationen (E-Mails, Telefonnummern, Ausweise) wurden zu Ihrer Privatsphäre geschwärzt.",
+        resultTitle: "Vereinfachtes Dokument",
+        chatTitle: "💬 Fragen zum Dokument stellen",
+        chatSubtitle: "Müssen Sie etwas klären? Fragen Sie DocDigest unten.",
+        sendChatBtn: "Senden"
     },
     it: {
         tagline: "Comprendi i documenti ufficiali, velocemente e facilmente.",
@@ -123,7 +139,11 @@ const translations = {
         multilingualDesc: "Funziona in qualsiasi lingua principale.",
         privacyPolicy: "Informativa sulla Privacy",
         uploadedSuccess: "✓ Caricato con successo",
-        redactedSensitive: "Le informazioni sensibili (email, telefoni, documenti) sono state oscurate per la tua privacy."
+        redactedSensitive: "Le informazioni sensibili (email, telefoni, documenti) sono state oscurate per la tua privacy.",
+        resultTitle: "Documento Semplificato",
+        chatTitle: "💬 Fai domande su questo documento",
+        chatSubtitle: "Hai bisogno di chiarimenti? Chiedi a DocDigest qui sotto.",
+        sendChatBtn: "Invia"
     },
     cn: {
         tagline: "快速轻松地理解官方文件。",
@@ -148,7 +168,11 @@ const translations = {
         multilingualDesc: "适用于任何主要语言。",
         privacyPolicy: "隐私政策",
         uploadedSuccess: "✓ 上传成功",
-        redactedSensitive: "敏感信息（电子邮件、电话、身份证）已根据您的隐私进行了遮盖。"
+        redactedSensitive: "敏感信息（电子邮件、电话、身份证）已根据您的隐私进行了遮盖。",
+        resultTitle: "简化文档",
+        chatTitle: "💬 关于此文档提问",
+        chatSubtitle: "需要澄清某些内容吗？在下方询问 DocDigest。",
+        sendChatBtn: "发送"
     }
 };
 
@@ -169,7 +193,13 @@ function switchLanguage(lang) {
         '#startOcrBtn': t.extractSimplify,
         '#textForm button[type="submit"]': t.simplifyText,
         '.main-footer a': t.privacyPolicy,
-        '#imageDropZone p': t.uploadImageText
+        '#imageDropZone p': t.uploadImageText,
+
+        // Result Page
+        '#result-title': t.resultTitle,
+        '#chat-title': t.chatTitle,
+        '#chat-subtitle': t.chatSubtitle,
+        '#sendChatBtn': t.sendChatBtn
     };
 
     for (const [selector, text] of Object.entries(selectors)) {
@@ -187,7 +217,6 @@ function switchLanguage(lang) {
 
     // Dynamic content (Upload Drop Zone)
     const dragDropText = document.querySelector('#fileDropZone p');
-    // Only update if it doesn't contain a success message
     if (dragDropText && !dragDropText.innerHTML.includes('✓') && !dragDropText.querySelector('div')) {
         dragDropText.textContent = t.dragDrop;
     }
@@ -214,20 +243,10 @@ function switchLanguage(lang) {
     }
 
     // Privacy Sensitive Notice Redaction
-    // This element is generated by PHP, so we check for it here
-    const privacyNotice = document.querySelector('.status-message strong');
-    if (privacyNotice) {
-        const statusMsg = document.querySelector('.status-message');
-        if (statusMsg && statusMsg.textContent.includes('redacted')) {
-            // Reconstruct the HTML to keep the strong tag but translate text
-            // Or simpler: just replace the whole text if it matches
-            // We'll replace the text node that follows the strong tag
-            if (statusMsg.lastChild && statusMsg.lastChild.nodeType === 3) {
-                statusMsg.lastChild.textContent = " " + t.redactedSensitive.replace('Sensitive information (emails, phones, IDs) has been redacted for your privacy.', '').trim();
-                // Actually easier to just replace content if we know structure
-                statusMsg.innerHTML = `<strong>Notice:</strong> ${t.redactedSensitive}`;
-            }
-        }
+    const statusMsg = document.querySelector('.status-message');
+    if (statusMsg && statusMsg.textContent.includes('edacted') && !statusMsg.dataset.translated) {
+        statusMsg.innerHTML = `<strong>${lang === 'en' ? 'Notice:' : (lang === 'es' ? 'Aviso:' : 'Note:')}</strong> ${t.redactedSensitive}`;
+        statusMsg.dataset.translated = "true";
     }
 
     // Store preference
@@ -239,17 +258,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedLang = localStorage.getItem('docdigest_lang') || 'en';
     switchLanguage(savedLang);
 
-    // Flags
-    const flags = document.querySelectorAll('.flags-container img');
+    // Flags (Using class selector now for both index and process pages)
+    const flags = document.querySelectorAll('.lang-flag');
+
+    // Fallback for index.php flags if they don't have the class yet (or old cached html)
+    const compatFlags = document.querySelectorAll('.flags-container img');
+
+    const allFlags = flags.length > 0 ? flags : compatFlags;
+
     const langMap = { 'us': 'en', 'es': 'es', 'fr': 'fr', 'de': 'de', 'it': 'it', 'cn': 'cn' };
 
-    flags.forEach(flag => {
+    allFlags.forEach(flag => {
         flag.style.cursor = 'pointer';
         flag.style.transition = 'transform 0.2s ease';
+
         flag.addEventListener('click', () => {
-            const countryCode = flag.src.match(/\/([a-z]{2})\.png/)[1];
-            switchLanguage(langMap[countryCode] || 'en');
+            // Get lang from data attribute OR src regex fallback
+            let lang = flag.dataset.lang;
+            if (!lang) {
+                const match = flag.src.match(/\/([a-z]{2})\.png/);
+                if (match) lang = langMap[match[1]];
+            }
+            if (lang) switchLanguage(lang);
         });
+
         flag.addEventListener('mouseenter', () => flag.style.transform = 'scale(1.15)');
         flag.addEventListener('mouseleave', () => flag.style.transform = 'scale(1)');
     });

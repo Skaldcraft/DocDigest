@@ -115,9 +115,9 @@
         </footer>
     </div>
 
-    <script src="assets/i18n.js"></script>
-    <script src="assets/processing-timer.js"></script>
-    <script src="assets/script.js"></script>
+    <script src="assets/i18n.js?v=2"></script>
+    <script src="assets/processing-timer.js?v=2"></script>
+    <script src="assets/script.js?v=2"></script>
 </body>
 
 </html>

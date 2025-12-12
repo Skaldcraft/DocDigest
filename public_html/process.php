@@ -175,13 +175,13 @@ function simplifyTextWithAI($text)
     $instruction = "You are DocDigest. Your task is to extract the ESSENTIAL information from official documents into valid JSON format.\n\n" .
 
         "**CRITICAL CONTENT RULES:**\n" .
-        "1. **TONE**: Use IMPERSONAL language ('" . 'Se ha decidido...' . "', '" . 'El titular...' . "', '" . 'La solicitud...' . "'). NEVER address the user as '" . 'tÃº' . "' or '" . 'usted' . "'.\n" .
+        "1. **TONE**: Use IMPERSONAL language ('Se ha decidido...', 'El titular...', 'La solicitud...'). NEVER address the user as 'tÃº' or 'usted'.\n" .
         "2. **STRUCTURE**: You MUST preserve the ORIGINAL SECTION TITLES.\n" .
-        "3. **PRIVACY**: REMOVE all personal names, IDs, phones, emails, addresses. Use generic terms like '" . '[El titular]' . "'.\n" .
+        "3. **PRIVACY**: REMOVE all personal names, IDs, phones, emails, addresses. Use generic terms like 'el titular', 'el municipio', 'el interesado' WITHOUT BRACKETS. Do NOT use '[El titular]' or '(municipio)'. Just use natural text.\n" .
         "4. **DEADLINES (CRITICAL)**: You MUST hunt for deadlines, even implicit ones.\n" .
-        "   - If text says '" . 'un mes desde la notificaciÃ³n' . "', extract: '" . 'Plazo: Un mes a partir del dÃ­a siguiente a la recepciÃ³n.' . "'\n" .
-        "   - If text says '" . '10 dÃ­as hÃ¡biles' . "', extract: '" . 'Plazo: 10 dÃ­as hÃ¡biles.' . "'\n" .
-        "   - If text says '" . 'se puede presentar recurso' . "' without a specific date, LOOK CLOSER for general timeframes defined in the 'RECURSOS' section.\n" .
+        "   - If text says 'un mes desde la notificaciÃ³n', extract: 'Plazo: Un mes a partir del dÃ­a siguiente a la recepciÃ³n.'\n" .
+        "   - If text says '10 dÃ­as hÃ¡biles', extract: 'Plazo: 10 dÃ­as hÃ¡biles.'\n" .
+        "   - If text says 'se puede presentar recurso' without a specific date, LOOK CLOSER for general timeframes defined in the 'RECURSOS' section.\n" .
         "5. **NO FILLER**: DELETE office addresses, verification codes, officials' names, and list of laws.\n\n" .
 
         "**DRAFTING RULES:**\n" .
@@ -191,11 +191,11 @@ function simplifyTextWithAI($text)
 
         "**EXAMPLES:**\n\n" .
 
-        "ðŸ”´ ORIGINAL: '" . 'Se puede interponer recurso de reposiciÃ³n... en el plazo de un mes contado a partir del dÃ­a siguiente...' . "'\n" .
-        "ðŸŸ¢ RESULT: '" . 'Esta resoluciÃ³n se puede recurrir.\\nPlazo: Un mes a partir del dÃ­a siguiente a la recepciÃ³n de la notificaciÃ³n.\\nEs importante revisar los requisitos.' . "'\n\n" .
+        "ðŸ”´ ORIGINAL: 'Se puede interponer recurso de reposiciÃ³n... en el plazo de un mes contado a partir del dÃ­a siguiente...'\n" .
+        "ðŸŸ¢ RESULT: 'Esta resoluciÃ³n se puede recurrir.\\nPlazo: Un mes a partir del dÃ­a siguiente a la recepciÃ³n de la notificaciÃ³n.\\nEs importante revisar los requisitos.'\n\n" .
 
-        "ðŸ”´ ORIGINAL: '" . 'Contra esta resoluciÃ³n, que no pone fin a la vÃ­a administrativa...' . "'\n" .
-        "ðŸŸ¢ RESULT: '" . 'Se puede presentar recurso de alzada en el plazo de un mes.' . "'\n\n" .
+        "ðŸ”´ ORIGINAL: 'Contra esta resoluciÃ³n, que no pone fin a la vÃ­a administrativa...'\n" .
+        "ðŸŸ¢ RESULT: 'Se puede presentar recurso de alzada en el plazo de un mes.'\n\n" .
 
         "**OUTPUT FORMAT (JSON):**\n" .
         "{\n" .
@@ -324,11 +324,25 @@ if (!empty($textToSimplify)) {
     <div class="container">
         <header class="main-header">
             <h1 class="logo">DocDigest</h1>
+            <div class="flags-container" style="display:flex; gap:10px; margin-left: 20px; align-items:center;">
+                <img src="https://flagcdn.com/w40/us.png" alt="US" title="English" class="lang-flag" data-lang="en"
+                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
+                <img src="https://flagcdn.com/w40/es.png" alt="ES" title="Español" class="lang-flag" data-lang="es"
+                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
+                <img src="https://flagcdn.com/w40/fr.png" alt="FR" title="Français" class="lang-flag" data-lang="fr"
+                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
+                <img src="https://flagcdn.com/w40/de.png" alt="DE" title="Deutsch" class="lang-flag" data-lang="de"
+                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
+                <img src="https://flagcdn.com/w40/it.png" alt="IT" title="Italiano" class="lang-flag" data-lang="it"
+                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
+                <img src="https://flagcdn.com/w40/cn.png" alt="CN" title="中文" class="lang-flag" data-lang="cn"
+                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
+            </div>
         </header>
 
         <main class="app-interface">
             <div class="card">
-                <h2>Simplified Document</h2>
+                <h2 id="result-title">Simplified Document</h2>
 
                 <?php if ($error): ?>
                     <div class="status-message" style="background: #FECACA; color: #7F1D1D;">
@@ -351,7 +365,7 @@ if (!empty($textToSimplify)) {
                         // Try to parse as JSON for structured output
                         $cleanOutput = preg_replace('/^```json\s*|\s*```$/s', '', trim($finalOutput));
                         $jsonData = json_decode($cleanOutput, true);
-                        
+
                         // Fallback: Try decoding original if cleaning failed (though cleaning usually helps)
                         if (!$jsonData) {
                             $jsonData = json_decode($finalOutput, true);
@@ -406,17 +420,17 @@ if (!empty($textToSimplify)) {
                     <!-- Chat Section -->
                     <div class="chat-section">
                         <div class="chat-header">
-                            <h3>💬 Ask Questions about this Document</h3>
-                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                            <h3 id="chat-title">💬 Ask Questions about this Document</h3>
+                            <p id="chat-subtitle" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
                                 Need to clarify something? Ask DocDigest below.
                             </p>
                         </div>
                         <div id="chatBox" class="chat-box">
                             <!-- Messages go here -->
-                            <div class="chat-message ai">Hello! I've read the document. What would you like to know?</div>
+                            <!-- Messages go here -->
                         </div>
                         <div class="chat-input-area">
-                            <input type="text" id="chatInput" placeholder="e.g., Do I need to bring my ID?">
+                            <input type="text" id="chatInput" placeholder="">
                             <button id="sendChatBtn" class="btn primary">Send</button>
                         </div>
                     </div>
@@ -427,7 +441,9 @@ if (!empty($textToSimplify)) {
     </div>
 
     <!-- Include script for chat functionality -->
-    <script src="assets/script.js"></script>
+    <!-- Include script for chat functionality -->
+    <script src="assets/i18n.js?v=2"></script>
+    <script src="assets/script.js?v=2"></script>
 </body>
 
 </html>
