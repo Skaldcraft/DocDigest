@@ -1,4 +1,4 @@
-// Multi-language support
+// Multi-language support with Privacy Translation
 const translations = {
     en: {
         tagline: "Understand official documents, fast and easy.",
@@ -22,7 +22,8 @@ const translations = {
         multilingual: "Multilingual",
         multilingualDesc: "Works in any major language.",
         privacyPolicy: "Privacy Policy",
-        uploadedSuccess: "✓ Uploaded successfully"
+        uploadedSuccess: "✓ Uploaded successfully",
+        redactedSensitive: "Sensitive information (emails, phones, IDs) has been redacted for your privacy."
     },
     es: {
         tagline: "Entiende documentos oficiales, rápido y fácil.",
@@ -46,7 +47,8 @@ const translations = {
         multilingual: "Multiidioma",
         multilingualDesc: "Funciona en cualquier idioma principal.",
         privacyPolicy: "Política de Privacidad",
-        uploadedSuccess: "✓ Subido exitosamente"
+        uploadedSuccess: "✓ Subido exitosamente",
+        redactedSensitive: "Se ha ocultado información sensible (emails, teléfonos, DNI) por tu privacidad."
     },
     fr: {
         tagline: "Comprenez les documents officiels, rapidement et facilement.",
@@ -70,7 +72,8 @@ const translations = {
         multilingual: "Multilingue",
         multilingualDesc: "Fonctionne dans toutes les langues principales.",
         privacyPolicy: "Politique de Confidentialité",
-        uploadedSuccess: "✓ Téléchargé avec succès"
+        uploadedSuccess: "✓ Téléchargé avec succès",
+        redactedSensitive: "Les informations sensibles (emails, téléphones, identifiants) ont été masquées pour votre confidentialité."
     },
     de: {
         tagline: "Verstehen Sie offizielle Dokumente, schnell und einfach.",
@@ -94,7 +97,8 @@ const translations = {
         multilingual: "Mehrsprachig",
         multilingualDesc: "Funktioniert in jeder Hauptsprache.",
         privacyPolicy: "Datenschutzrichtlinie",
-        uploadedSuccess: "✓ Erfolgreich hochgeladen"
+        uploadedSuccess: "✓ Erfolgreich hochgeladen",
+        redactedSensitive: "Sensible Informationen (E-Mails, Telefonnummern, Ausweise) wurden zu Ihrer Privatsphäre geschwärzt."
     },
     it: {
         tagline: "Comprendi i documenti ufficiali, velocemente e facilmente.",
@@ -118,7 +122,8 @@ const translations = {
         multilingual: "Multilingue",
         multilingualDesc: "Funziona in qualsiasi lingua principale.",
         privacyPolicy: "Informativa sulla Privacy",
-        uploadedSuccess: "✓ Caricato con successo"
+        uploadedSuccess: "✓ Caricato con successo",
+        redactedSensitive: "Le informazioni sensibili (email, telefoni, documenti) sono state oscurate per la tua privacy."
     },
     cn: {
         tagline: "快速轻松地理解官方文件。",
@@ -142,62 +147,58 @@ const translations = {
         multilingual: "多语言",
         multilingualDesc: "适用于任何主要语言。",
         privacyPolicy: "隐私政策",
-        uploadedSuccess: "✓ 上传成功"
+        uploadedSuccess: "✓ 上传成功",
+        redactedSensitive: "敏感信息（电子邮件、电话、身份证）已根据您的隐私进行了遮盖。"
     }
 };
 
-// Language switcher
+// Language switcher logic
 let currentLang = 'en';
 
 function switchLanguage(lang) {
     currentLang = lang;
     const t = translations[lang];
 
-    // Update all translatable elements
-    document.querySelector('.tagline').textContent = t.tagline;
+    // Update all translatable elements via selectors
+    const selectors = {
+        '.tagline': t.tagline,
+        'label[for="fileInput"]': t.browseFiles,
+        '#fileDropZone .small-text': t.maxSize,
+        'label[for="imageInput"]': t.selectImage,
+        '#fileForm button[type="submit"]': t.simplifyDocument,
+        '#startOcrBtn': t.extractSimplify,
+        '#textForm button[type="submit"]': t.simplifyText,
+        '.main-footer a': t.privacyPolicy,
+        '#imageDropZone p': t.uploadImageText
+    };
 
-    // Tab buttons
-    const tabs = document.querySelectorAll('.tab-btn span:last-child');
-    if (tabs[0]) tabs[0].textContent = t.uploadFile;
-    if (tabs[1]) tabs[1].textContent = t.uploadImage;
-    if (tabs[2]) tabs[2].textContent = t.pasteText;
-
-    // File upload section
-    const dragDropText = document.querySelector('#fileDropZone p');
-    if (dragDropText && !dragDropText.innerHTML.includes('✓')) {
-        dragDropText.textContent = t.dragDrop;
+    for (const [selector, text] of Object.entries(selectors)) {
+        const el = document.querySelector(selector);
+        if (el) el.textContent = text;
     }
 
+    // Tabs have specific indices
+    const tabs = document.querySelectorAll('.tab-btn span:last-child');
+    if (tabs.length >= 3) {
+        tabs[0].textContent = t.uploadFile;
+        tabs[1].textContent = t.uploadImage;
+        tabs[2].textContent = t.pasteText;
+    }
+
+    // Dynamic content (Upload Drop Zone)
+    const dragDropText = document.querySelector('#fileDropZone p');
+    // Only update if it doesn't contain a success message
+    if (dragDropText && !dragDropText.innerHTML.includes('✓') && !dragDropText.querySelector('div')) {
+        dragDropText.textContent = t.dragDrop;
+    }
     const orSpan = document.querySelector('#fileDropZone span');
     if (orSpan) orSpan.textContent = t.or;
 
-    const browseLabel = document.querySelector('label[for="fileInput"]');
-    if (browseLabel) browseLabel.textContent = t.browseFiles;
-
-    const maxSizeText = document.querySelector('#fileDropZone .small-text');
-    if (maxSizeText) maxSizeText.textContent = t.maxSize;
-
-    const simplifyBtn = document.querySelector('#fileForm button[type="submit"]');
-    if (simplifyBtn) simplifyBtn.textContent = t.simplifyDocument;
-
-    // Image upload section
-    const imageDropText = document.querySelector('#imageDropZone p');
-    if (imageDropText) imageDropText.textContent = t.uploadImageText;
-
-    const selectImageLabel = document.querySelector('label[for="imageInput"]');
-    if (selectImageLabel) selectImageLabel.textContent = t.selectImage;
-
-    const extractBtn = document.getElementById('startOcrBtn');
-    if (extractBtn) extractBtn.textContent = t.extractSimplify;
-
-    // Text paste section
+    // Placeholders
     const textarea = document.querySelector('#tab-text textarea');
     if (textarea) textarea.placeholder = t.pasteHere;
 
-    const simplifyTextBtn = document.querySelector('#textForm button[type="submit"]');
-    if (simplifyTextBtn) simplifyTextBtn.textContent = t.simplifyText;
-
-    // Features
+    // Feature items
     const features = document.querySelectorAll('.feature-item');
     if (features[0]) {
         features[0].querySelector('h3').textContent = t.securePrivate;
@@ -212,58 +213,44 @@ function switchLanguage(lang) {
         features[2].querySelector('p').textContent = t.multilingualDesc;
     }
 
-    // Footer
-    const privacyLink = document.querySelector('.main-footer a');
-    if (privacyLink) privacyLink.textContent = t.privacyPolicy;
+    // Privacy Sensitive Notice Redaction
+    // This element is generated by PHP, so we check for it here
+    const privacyNotice = document.querySelector('.status-message strong');
+    if (privacyNotice) {
+        const statusMsg = document.querySelector('.status-message');
+        if (statusMsg && statusMsg.textContent.includes('redacted')) {
+            // Reconstruct the HTML to keep the strong tag but translate text
+            // Or simpler: just replace the whole text if it matches
+            // We'll replace the text node that follows the strong tag
+            if (statusMsg.lastChild && statusMsg.lastChild.nodeType === 3) {
+                statusMsg.lastChild.textContent = " " + t.redactedSensitive.replace('Sensitive information (emails, phones, IDs) has been redacted for your privacy.', '').trim();
+                // Actually easier to just replace content if we know structure
+                statusMsg.innerHTML = `<strong>Notice:</strong> ${t.redactedSensitive}`;
+            }
+        }
+    }
 
     // Store preference
     localStorage.setItem('docdigest_lang', lang);
 }
 
-// Initialize language on page load
 document.addEventListener('DOMContentLoaded', () => {
-    // Load saved language or default to English
+    // Load saved language
     const savedLang = localStorage.getItem('docdigest_lang') || 'en';
     switchLanguage(savedLang);
 
-    // Add click handlers to flags
+    // Flags
     const flags = document.querySelectorAll('.flags-container img');
-    const langMap = {
-        'us': 'en',
-        'es': 'es',
-        'fr': 'fr',
-        'de': 'de',
-        'it': 'it',
-        'cn': 'cn'
-    };
+    const langMap = { 'us': 'en', 'es': 'es', 'fr': 'fr', 'de': 'de', 'it': 'it', 'cn': 'cn' };
 
     flags.forEach(flag => {
         flag.style.cursor = 'pointer';
         flag.style.transition = 'transform 0.2s ease';
-
         flag.addEventListener('click', () => {
-            const alt = flag.alt.toLowerCase();
-            const src = flag.src;
-            const countryCode = src.match(/\/([a-z]{2})\.png/)[1];
-            const lang = langMap[countryCode] || 'en';
-            switchLanguage(lang);
-
-            // Visual feedback
-            flags.forEach(f => f.style.transform = 'scale(1)');
-            flag.style.transform = 'scale(1.2)';
+            const countryCode = flag.src.match(/\/([a-z]{2})\.png/)[1];
+            switchLanguage(langMap[countryCode] || 'en');
         });
-
-        flag.addEventListener('mouseenter', () => {
-            flag.style.transform = 'scale(1.15)';
-        });
-
-        flag.addEventListener('mouseleave', () => {
-            const src = flag.src;
-            const countryCode = src.match(/\/([a-z]{2})\.png/)[1];
-            const lang = langMap[countryCode] || 'en';
-            if (lang !== currentLang) {
-                flag.style.transform = 'scale(1)';
-            }
-        });
+        flag.addEventListener('mouseenter', () => flag.style.transform = 'scale(1.15)');
+        flag.addEventListener('mouseleave', () => flag.style.transform = 'scale(1)');
     });
 });

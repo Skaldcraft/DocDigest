@@ -172,77 +172,47 @@ function askGemini($instruction, $contextSource)
 
 function simplifyTextWithAI($text)
 {
-    $instruction = "You are DocDigest, an expert at translating bureaucratic documents into plain, conversational language. " .
-        "Your goal is to EXTRACT SPECIFIC INFORMATION and present it in a way a friend would explain it.\n\n" .
+    $instruction = "You are DocDigest. Your task is to extract the ESSENTIAL information from official documents into valid JSON format.\n\n" .
 
-        "**CRITICAL PRINCIPLES:**\n" .
-        "1. DON'T explain what a section is about - EXTRACT the actual information\n" .
-        "2. DON'T use bureaucratic language - use CONVERSATIONAL, direct language\n" .
-        "3. INCLUDE specific details: dates, amounts, deadlines, names, reference numbers\n" .
-        "4. Write as if explaining to a friend who doesn't understand legal jargon\n" .
-        "5. Use 'tÃº' (informal you) when addressing the reader\n\n" .
+        "**CRITICAL CONTENT RULES:**\n" .
+        "1. **TONE**: Use IMPERSONAL language ('" . 'Se ha decidido...' . "', '" . 'El titular...' . "', '" . 'La solicitud...' . "'). NEVER address the user as '" . 'tÃº' . "' or '" . 'usted' . "'.\n" .
+        "2. **STRUCTURE**: You MUST preserve the ORIGINAL SECTION TITLES of the document (e.g., '" . 'ANTECEDENTES' . "', '" . 'ACUERDO' . "', '" . 'RECURSOS' . "'). Do not invent new headers unless the document has absolutely no structure.\n" .
+        "3. **PRIVACY**: REMOVE all personal data (Names, NIF/IDs, Phone numbers, Emails, Addresses). Replace with generic terms like '" . '[El titular]' . "', '" . '[Municipio]' . "'.\n" .
+        "4. **NO FILLER**: \n" .
+        "   - DELETE office addresses, verification codes (CSV), names of officials who signed.\n" .
+        "   - DELETE generic legal definitions ('" . 'Se detallan las leyes...' . "').\n" .
+        "   - DELETE 'procedural' narration ('" . 'Aparece que se basan en...' . "').\n" .
+        "   - KEEP concrete facts: Decisions, Dates, Amounts, Grants, Deadlines.\n\n" .
+
+        "**DRAFTING RULES:**\n" .
+        "- **Concise**: '" . 'No se ha aceptado tu solicitud' . "' is better than '" . 'Se ha decidido rechazar...' . "' (Avoid '" . 'Esto significa que...' . "').\n" .
+        "- **Direct**: State the outcome immediately.\n" .
+        "- **Deadlines**: If a deadline is mentioned (e.g., '" . 'un mes' . "'), EXTRACT IT explicitly. It is crucial.\n" .
+        "- **Contextual Help**: Only suggest '" . 'puedes pedirme una lista de documentos' . "' if the text explicitly asks for documentation to be submitted.\n\n" .
+
+        "**EXAMPLES OF EXTRACTION:**\n\n" .
+
+        "ðŸ”´ ORIGINAL: '" . 'TÃº, D. Juan con NIF X, presentaste solicitud el 6/2/21. El 16/5/21 un equipo te valorÃ³...' . "'\n" .
+        "ðŸŸ¢ RESULT: '" . 'El titular presentÃ³ una solicitud de reconocimiento de dependencia el 6 de febrero de 2021.\\nSe realizÃ³ la valoraciÃ³n el 16 de mayo de 2021 y el informe tÃ©cnico confirmÃ³ limitaciones para las actividades bÃ¡sicas.' . "'\n\n" .
+
+        "ðŸ”´ ORIGINAL: '" . 'ACUERDO: Desestimar la solicitud. Fundamentos: Ley 44/2000...' . "'\n" .
+        "ðŸŸ¢ RESULT: '" . 'La Agencia Tributaria no ha aceptado las alegaciones presentadas.' . "' (Skip the laws)\n\n" .
+
+        "ðŸ”´ ORIGINAL: '" . 'Se puede interponer recurso de reposiciÃ³n en el plazo de un mes...' . "'\n" .
+        "ðŸŸ¢ RESULT: '" . 'Esta resoluciÃ³n se puede recurrir.\\nPlazo: Un mes a partir del dÃ­a siguiente a la recepciÃ³n.\\nSi se decide recurrir, es importante revisar bien los requisitos.' . "'\n\n" .
 
         "**OUTPUT FORMAT (JSON):**\n" .
         "{\n" .
-        "  \"document_title\": \"Brief, clear title\",\n" .
+        "  \"document_title\": \"Descriptive Title (e.g., '" . 'Respuesta a solicitud de rectificaciÃ³n' . "')\",\n" .
         "  \"sections\": [\n" .
         "    {\n" .
-        "      \"title\": \"Section name (keep original if clear, simplify if bureaucratic)\",\n" .
-        "      \"type\": \"relevant\" or \"boilerplate\",\n" .
-        "      \"content\": \"Extracted information in conversational language\"\n" .
+        "      \"title\": \"EXACT ORIGINAL HEADER\",\n" .
+        "      \"type\": \"relevant\",\n" .
+        "      \"content\": \"Impersonal, concise extracted info.\"\n" .
         "    }\n" .
         "  ]\n" .
         "}\n\n" .
-
-        "**EXAMPLES OF GOOD vs BAD:**\n\n" .
-
-        "âŒ BAD (bureaucratic explanation):\n" .
-        "\"Esta secciÃ³n detalla los procedimientos y plazos para presentar recursos.\"\n\n" .
-
-        "âœ… GOOD (extracted information, conversational):\n" .
-        "\"Esta resoluciÃ³n se puede recurrir en el plazo de un mes desde el dÃ­a siguiente a haberla recibido.\n" .
-        "Si decides recurrir, es imprescindible leer atentamente en el documento los requisitos para hacerlo. " .
-        "TambiÃ©n puedes pedirme que te los escriba en una lista.\"\n\n" .
-
-        "âŒ BAD (vague):\n" .
-        "\"Se informa que usted presentÃ³ alegaciones previamente en este procedimiento.\"\n\n" .
-
-        "âœ… GOOD (specific facts):\n" .
-        "\"Este documento es una notificaciÃ³n sobre unas alegaciones tuyas. Las presentaste el 15 de marzo de 2024 " .
-        "en relaciÃ³n a la declaraciÃ³n de renta de 2023.\n" .
-        "Presentaste el 20 de febrero una solicitud de rectificaciÃ³n por la transmisiÃ³n de un inmueble.\n" .
-        "Se te solicitÃ³ el 1 de marzo que presentaras unos papeles.\"\n\n" .
-
-        "**SPECIFIC INSTRUCTIONS BY SECTION TYPE:**\n\n" .
-        "For ANTECEDENTES (Background):\n" .
-        "- Extract: What happened? When? What did the person do? What did the administration do?\n" .
-        "- Include ALL dates, reference numbers, amounts\n" .
-        "- Write in chronological order if possible\n" .
-        "- Example: 'Presentaste el [fecha] una solicitud de...'\n\n" .
-
-        "For ACUERDO/RESOLUCIÃ“N (Decision):\n" .
-        "- Extract: What was decided? Why? What are the consequences?\n" .
-        "- Be direct: 'La solicitud se ha rechazado' not 'Se ha procedido a denegar'\n" .
-        "- Include specific reasons with details\n" .
-        "- Example: 'La razÃ³n es que no presentaste los documentos que se pedÃ­an en el plazo establecido.'\n\n" .
-
-        "For RECURSOS/RECLAMACIONES (Appeals):\n" .
-        "- Extract: Exact deadline (calculate from receipt date if needed)\n" .
-        "- Where to submit? What to include?\n" .
-        "- Write actionable information\n" .
-        "- End with: 'TambiÃ©n puedes pedirme que te los escriba en una lista.'\n\n" .
-
-        "For NORMAS APLICABLES (Legal References):\n" .
-        "- Type: 'boilerplate'\n" .
-        "- Content: 'Se detallan las leyes y normativas relacionadas con [brief topic].'\n\n" .
-
-        "**FORMATTING RULES:**\n" .
-        "- Use normal text, NO markdown symbols (no *, **, #, -, etc.)\n" .
-        "- Use line breaks for readability\n" .
-        "- Write in the SAME LANGUAGE as the source document\n" .
-        "- Skip sections with no useful information (like 'IDENTIFICACIÃ“N DEL DOCUMENTO')\n\n" .
-
-        "**OUTPUT:** Valid JSON only, no additional text before or after.";
+        "Rules for 'type': Use 'boilerplate' ONLY for sections that are purely legal strings with no specific info (which should properly be skipped or minimized).";
 
     return askGemini($instruction, $text);
 }

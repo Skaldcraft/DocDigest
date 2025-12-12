@@ -53,23 +53,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         function showUploadSuccess(fileName) {
+            console.log('File uploaded:', fileName); // Debug
             const dropZoneText = fileDropZone.querySelector('p');
+            // Get translated success message from global translations or default
+            const successMsg = (typeof translations !== 'undefined' && translations[currentLang])
+                ? translations[currentLang].uploadedSuccess
+                : "✓ Uploaded successfully";
+
             dropZoneText.innerHTML = `
-                <span style="color: #10B981; font-weight: 700; font-size: 1.2rem;">
-                    ✓ Uploaded successfully
-                </span><br>
-                <span style="font-size: 1rem; color: var(--text-main); margin-top: 0.5rem; display: inline-block;">
-                    ${fileName}
-                </span>
+                <div style="
+                    background-color: #DEF7EC; 
+                    border: 2px solid #03543F; 
+                    border-radius: 12px; 
+                    padding: 1rem; 
+                    margin-top: 0.5rem;
+                    display: inline-block;
+                    width: 90%;
+                ">
+                    <span style="color: #03543F; font-weight: 800; font-size: 1.3rem; display: block; margin-bottom: 0.25rem;">
+                        ${successMsg}
+                    </span>
+                    <span style="font-size: 1rem; color: #03543F; word-break: break-all;">
+                        ${fileName}
+                    </span>
+                </div>
             `;
-            fileDropZone.style.borderColor = '#10B981';
-            fileDropZone.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            fileDropZone.style.borderColor = '#03543F';
+            fileDropZone.style.backgroundColor = '#F3FAF7';
             fileDropZone.style.borderWidth = '3px';
         }
     }
 
-    // Image OCR with Tesseract.js
-    const startOcrBtn = document.getElementById('startOcrBtn');
+    // Privacy Notice Translation Hook
+    const privacyNotice = document.querySelector('.status-message strong');
+    if (privacyNotice && typeof translations !== 'undefined') {
+        const sensitiveText = document.querySelector('.status-message');
+        if (sensitiveText && sensitiveText.innerHTML.includes('Sensitive information')) {
+            const t = translations[currentLang] || translations['en'];
+            // This is a simple replacement, ideally done on server-side or via full text replacement
+            // For now, we will handle it in i18n.js update to be cleaner.
+        }
+    }
+
+    // ... (rest of Tesseract and Chat code remains similar, ensuring chat UI classes are used)
+
     const imageInput = document.getElementById('imageInput');
     const imageForm = document.getElementById('imageForm');
     const ocrStatus = document.getElementById('ocr-status');
