@@ -26,13 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
         fileDropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             fileDropZone.style.borderColor = 'var(--primary-color)';
-            fileDropZone.style.backgroundColor = '#FFF7ED';
+            fileDropZone.style.backgroundColor = 'rgba(204, 123, 103, 0.05)';
         });
 
         fileDropZone.addEventListener('dragleave', (e) => {
             e.preventDefault();
-            fileDropZone.style.borderColor = '#FDBA74';
-            fileDropZone.style.backgroundColor = 'rgba(255, 247, 237, 0.5)';
+            fileDropZone.style.borderColor = '#E5D4C1';
+            fileDropZone.style.backgroundColor = 'rgba(247, 244, 234, 0.5)';
         });
 
         fileDropZone.addEventListener('drop', (e) => {
@@ -41,36 +41,31 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.dataTransfer.files.length) {
                 fileInput.files = e.dataTransfer.files;
                 const fileName = e.dataTransfer.files[0].name;
-                const dropZoneText = fileDropZone.querySelector('p');
-                dropZoneText.innerHTML = `
-                    <span style="color: #10B981; font-weight: 600;">
-                        ✓ Uploaded successfully
-                    </span><br>
-                    <span style="font-size: 0.95rem; color: var(--text-muted);">
-                        ${fileName}
-                    </span>
-                `;
-                fileDropZone.style.borderColor = '#10B981';
-                fileDropZone.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
+                showUploadSuccess(fileName);
             }
         });
 
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length) {
                 const fileName = fileInput.files[0].name;
-                const dropZoneText = fileDropZone.querySelector('p');
-                dropZoneText.innerHTML = `
-                    <span style="color: #10B981; font-weight: 600;">
-                        ✓ Uploaded successfully
-                    </span><br>
-                    <span style="font-size: 0.95rem; color: var(--text-muted);">
-                        ${fileName}
-                    </span>
-                `;
-                fileDropZone.style.borderColor = '#10B981';
-                fileDropZone.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
+                showUploadSuccess(fileName);
             }
         });
+
+        function showUploadSuccess(fileName) {
+            const dropZoneText = fileDropZone.querySelector('p');
+            dropZoneText.innerHTML = `
+                <span style="color: #10B981; font-weight: 700; font-size: 1.2rem;">
+                    ✓ Uploaded successfully
+                </span><br>
+                <span style="font-size: 1rem; color: var(--text-main); margin-top: 0.5rem; display: inline-block;">
+                    ${fileName}
+                </span>
+            `;
+            fileDropZone.style.borderColor = '#10B981';
+            fileDropZone.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            fileDropZone.style.borderWidth = '3px';
+        }
     }
 
     // Image OCR with Tesseract.js
