@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // public_html/process.php
 session_start(); // Start session to store document context for chat
 include 'config.php';
@@ -172,71 +172,29 @@ function askGemini($instruction, $contextSource)
 
 function simplifyTextWithAI($text)
 {
-    $instruction = "You are DocDigest. You are an assistant that translates official and bureaucratic documents into clear and accessible language.
-
-OBJECTIVE:
-Extract essential information in a format that allows understanding it in seconds, prioritizing what is urgent and what requires action from the recipient.
-
-FORMAT RULES:
-
-1. HEADER:
-   - Line 1: [AGENCY] - [Document type in simple language]
-   - Example: "SEPE - Unemployment benefit" / "Tax Agency - Payment claim" / "Court - Summons"
-
-2. STATUS/OUTCOME (if applicable):
-   - Use ✅ for approvals/favorable outcomes
-   - Use ❌ for denials/unfavorable outcomes
-   - Use ⚠️ for alerts or situations requiring attention
-   - One keyword: Approved/Denied/Pending/Required
-
-3. KEY INFORMATION:
-   - Format: **Label:** Value
-   - Prioritize: amounts, dates, deadlines, obligations
-   - Translate technical terms: "prestación contributiva" → "unemployment benefit", "recurso de reposición" → "appeal"
-   - If you mention a technical term for the first time, clarify it in parentheses
-
-4. DEADLINES AND URGENT ACTIONS:
-   - Always at the beginning, after the status
-   - Convert relative deadlines into absolute dates
-   - Example: "one month from receipt" → "Until February 3, 2026"
-   - If a deadline has already passed: "⚠️ WARNING: This deadline ALREADY EXPIRED on [date]. Contact [agency] urgently to know your options."
-
-5. SUMMONS/APPOINTMENTS:
-   - Format: The summoned person must appear on [day] at [time] at [complete address]
-   - Indicate what to bring if specified in the document
-
-6. ANONYMIZATION:
-   - DO NOT include personal names (replace with "the recipient" or "the person receiving this document")
-   - DO NOT include ID numbers, personal addresses, phone numbers
-   - DO NOT include names of officials/signatories unless necessary for action (e.g., "must meet with Dr. Pérez")
-   - DO NOT include case numbers unless their importance is explicitly mentioned
-   - DO include agency addresses if physical attendance is required
-
-7. TONE:
-   - Neutral and informative
-   - Cordial but without emotional involvement
-   - Direct and concise
-   - Conversational but professional
-
-8. FINAL NOTES (if applicable):
-   - Non-urgent complementary information
-   - Format: brief note at the very end
-   - Example: "Providing the case number will speed up the process"
-
-GENERAL STRUCTURE:
-[AGENCY] - [Document type]
-
-[Status with icon if applicable]
-
-⚠️ [Urgent action/Deadline] (if exists)
-
-**Key data 1:** value
-**Key data 2:** value
-**Key data 3:** value
-
-[Complementary information if relevant]
-
-[Final note if applicable]";
+    $instruction = "You are DocDigest, an expert at simplifying bureaucratic and official documents. " .
+        "Analyze the following document and extract its main sections. " .
+        "\n\n**INSTRUCTIONS:**\n" .
+        "1. Identify all major sections/headings in the document (e.g., ANTECEDENTES, ACUERDO, RECURSOS, NORMAS APLICABLES, etc.)\n" .
+        "2. For each section, determine if it contains RELEVANT information for the reader or if it's just LEGAL BOILERPLATE (lists of laws, regulations, formal references)\n" .
+        "3. Output in JSON format with this structure:\n" .
+        "{\n" .
+        "  \"document_title\": \"Brief title of the document\",\n" .
+        "  \"sections\": [\n" .
+        "    {\n" .
+        "      \"title\": \"Section name\",\n" .
+        "      \"type\": \"relevant\" or \"boilerplate\",\n" .
+        "      \"summary\": \"Clear, simplified explanation in plain language (if relevant) OR a brief note like 'Detalle de las leyes y normas relacionadas con el caso' (if boilerplate)\"\n" .
+        "    }\n" .
+        "  ]\n" .
+        "}\n\n" .
+        "**RULES:**\n" .
+        "- Skip sections with no useful information (like 'IDENTIFICACIÓN DEL DOCUMENTO')\n" .
+        "- For RELEVANT sections: Provide a clear, simplified explanation focusing on obligations, rights, deadlines, and key facts\n" .
+        "- For BOILERPLATE sections (legal references, law lists): Just provide a brief meta-description like 'Se detallan las leyes y normativas aplicables a esta resolución'\n" .
+        "- Use short paragraphs and bullet points for clarity\n" .
+        "- IMPORTANT: Detect the language of the source text and write ALL output (titles, summaries) in that EXACT SAME language\n" .
+        "- Output ONLY valid JSON, no additional text before or after";
 
     return askGemini($instruction, $text);
 }
@@ -352,25 +310,11 @@ if (!empty($textToSimplify)) {
     <div class="container">
         <header class="main-header">
             <h1 class="logo">DocDigest</h1>
-            <div class="flags-container" style="display:flex; gap:10px; margin-left: 20px; align-items:center;">
-                <img src="https://flagcdn.com/w40/us.png" alt="US" title="English" class="lang-flag" data-lang="en"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/es.png" alt="ES" title="Español" class="lang-flag" data-lang="es"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/fr.png" alt="FR" title="Français" class="lang-flag" data-lang="fr"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/de.png" alt="DE" title="Deutsch" class="lang-flag" data-lang="de"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/it.png" alt="IT" title="Italiano" class="lang-flag" data-lang="it"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/cn.png" alt="CN" title="中文" class="lang-flag" data-lang="cn"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
-            </div>
         </header>
 
         <main class="app-interface">
             <div class="card">
-                <h2 id="result-title">Simplified Document</h2>
+                <h2>Simplified Document</h2>
 
                 <?php if ($error): ?>
                     <div class="status-message" style="background: #FECACA; color: #7F1D1D;">
@@ -391,13 +335,7 @@ if (!empty($textToSimplify)) {
                     <div class="output-content">
                         <?php
                         // Try to parse as JSON for structured output
-                        $cleanOutput = preg_replace('/^```json\s*|\s*```$/s', '', trim($finalOutput));
-                        $jsonData = json_decode($cleanOutput, true);
-
-                        // Fallback: Try decoding original if cleaning failed (though cleaning usually helps)
-                        if (!$jsonData) {
-                            $jsonData = json_decode($finalOutput, true);
-                        }
+                        $jsonData = json_decode($finalOutput, true);
 
                         if ($jsonData && isset($jsonData['sections'])) {
                             // Structured output
@@ -421,7 +359,7 @@ if (!empty($textToSimplify)) {
 
                                 echo '<div style="line-height: 1.7; white-space: pre-wrap; color: ' .
                                     ($isBoilerplate ? '#6B7280' : 'var(--text-primary)') . ';">';
-                                echo htmlspecialchars($section['content']);
+                                echo htmlspecialchars($section['summary']);
                                 echo '</div>';
 
                                 echo '</div>';
@@ -448,17 +386,17 @@ if (!empty($textToSimplify)) {
                     <!-- Chat Section -->
                     <div class="chat-section">
                         <div class="chat-header">
-                            <h3 id="chat-title">💬 Ask Questions about this Document</h3>
-                            <p id="chat-subtitle" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                            <h3>💬 Ask Questions about this Document</h3>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
                                 Need to clarify something? Ask DocDigest below.
                             </p>
                         </div>
                         <div id="chatBox" class="chat-box">
                             <!-- Messages go here -->
-                            <!-- Messages go here -->
+                            <div class="chat-message ai">Hello! I've read the document. What would you like to know?</div>
                         </div>
                         <div class="chat-input-area">
-                            <input type="text" id="chatInput" placeholder="">
+                            <input type="text" id="chatInput" placeholder="e.g., Do I need to bring my ID?">
                             <button id="sendChatBtn" class="btn primary">Send</button>
                         </div>
                     </div>
@@ -469,9 +407,7 @@ if (!empty($textToSimplify)) {
     </div>
 
     <!-- Include script for chat functionality -->
-    <!-- Include script for chat functionality -->
-    <script src="assets/i18n.js?v=2"></script>
-    <script src="assets/script.js?v=2"></script>
+    <script src="assets/script.js"></script>
 </body>
 
 </html>
