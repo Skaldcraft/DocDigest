@@ -1,3 +1,10 @@
+/* Mensaje de idioma */
+.language-message {
+    font-size: 0.9rem;
+    color: #555;
+    min-height: 1.2em;
+    text-align: right;
+}
 /* CSS Variables - Warm Beige/Coral Palette */
 :root {
     --primary-color: #CC7B67;

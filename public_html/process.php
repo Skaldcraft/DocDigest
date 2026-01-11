@@ -1,7 +1,10 @@
-﻿<?php
+<?php
 // public_html/process.php
-session_start(); // Start session to store document context for chat
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 include 'config.php';
+define('MAX_FILE_SIZE_MB', 10);
 
 // Helper Function: Parse DOCX
 function readDocx($filename)
@@ -29,33 +32,27 @@ function readDocx($filename)
     return "Error reading .docx file. Ensure it is a valid format.";
 }
 
-// Helper Function: Parse Text from PDF (Native PHP Implementation)
+// Helper Function: Parse Text from PDF
 function readPdf($filename)
 {
     if (!file_exists($filename)) {
         return "PDF file not found.";
     }
 
-    // Read the PDF file
     $content = file_get_contents($filename);
 
     if (!$content) {
         return "Error reading PDF file.";
     }
 
-    // Check if it's a valid PDF
     if (strpos($content, '%PDF') !== 0) {
         return "Invalid PDF file format.";
     }
 
-    // Extract text from PDF
-    // This is a simplified approach that works for many text-based PDFs
     $text = '';
 
-    // Method 1: Extract text between BT (Begin Text) and ET (End Text) operators
     if (preg_match_all('/BT\s*(.*?)\s*ET/s', $content, $matches)) {
         foreach ($matches[1] as $textBlock) {
-            // Extract text from Tj and TJ operators
             if (preg_match_all('/\((.*?)\)\s*Tj/s', $textBlock, $textMatches)) {
                 foreach ($textMatches[1] as $t) {
                     $text .= $t . ' ';
@@ -63,7 +60,6 @@ function readPdf($filename)
             }
             if (preg_match_all('/\[(.*?)\]\s*TJ/s', $textBlock, $textMatches)) {
                 foreach ($textMatches[1] as $t) {
-                    // Remove positioning numbers and extract text
                     $cleaned = preg_replace('/\(([^)]+)\)/', '$1 ', $t);
                     $cleaned = preg_replace('/-?\d+/', '', $cleaned);
                     $text .= $cleaned;
@@ -72,18 +68,14 @@ function readPdf($filename)
         }
     }
 
-    // Method 2: Try to extract from stream objects if Method 1 didn't work well
     if (strlen(trim($text)) < 50) {
-        // Look for text in stream objects
         if (preg_match_all('/stream\s*\n(.*?)\nendstream/s', $content, $streams)) {
             foreach ($streams[1] as $stream) {
-                // Try to decompress if it's a FlateDecode stream
                 $decompressed = @gzuncompress($stream);
                 if ($decompressed !== false) {
                     $stream = $decompressed;
                 }
 
-                // Extract readable text
                 if (preg_match_all('/\((.*?)\)/s', $stream, $textMatches)) {
                     foreach ($textMatches[1] as $t) {
                         if (strlen($t) > 2 && ctype_print(str_replace(["\n", "\r", "\t"], '', $t))) {
@@ -95,9 +87,8 @@ function readPdf($filename)
         }
     }
 
-    // Clean up the extracted text
     $text = str_replace(['\\(', '\\)', '\\n', '\\r', '\\t'], ['(', ')', "\n", "\r", "\t"], $text);
-    $text = preg_replace('/\s+/', ' ', $text); // Normalize whitespace
+    $text = preg_replace('/\s+/', ' ', $text);
     $text = trim($text);
 
     if (strlen($text) < 10) {
@@ -111,14 +102,12 @@ function readPdf($filename)
     return $text;
 }
 
-// Real Gemini API Simplification
+// Gemini API Function
 function askGemini($instruction, $contextSource)
 {
     $apiKey = AI_API_KEY;
-    // Using gemini-2.5-flash - latest fast model (confirmed available via API test)
     $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . $apiKey;
 
-    // Prompt Engineering
     $combinedPrompt = $instruction . "\n\nSource Text:\n" . $contextSource;
 
     $data = [
@@ -136,7 +125,6 @@ function askGemini($instruction, $contextSource)
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    // curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
 
     $ch_response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -144,11 +132,11 @@ function askGemini($instruction, $contextSource)
     curl_close($ch);
 
     if ($curlError) {
+        error_log("Gemini API Error: " . $curlError);
         return "Error connecting to AI service: " . $curlError;
     }
 
     if ($httpCode !== 200) {
-        // Log detailed error for debugging
         $errorLog = "API Error Details:\n";
         $errorLog .= "HTTP Code: $httpCode\n";
         $errorLog .= "URL: $url\n";
@@ -161,7 +149,6 @@ function askGemini($instruction, $contextSource)
 
     $json = json_decode($ch_response, true);
 
-    // Extract text from Gemini response structure
     if (isset($json['candidates'][0]['content']['parts'][0]['text'])) {
         return $json['candidates'][0]['content']['parts'][0]['text'];
     } else {
@@ -170,9 +157,11 @@ function askGemini($instruction, $contextSource)
     }
 }
 
+// Simplify Document with AI
 function simplifyTextWithAI($text)
 {
-    $instruction = "You are DocDigest. You are an assistant that translates official and bureaucratic documents into clear and accessible language.
+    $instruction = <<<'EOD'
+You are DocDigest. You are an assistant that translates official and bureaucratic documents into clear and accessible language.
 
 OBJECTIVE:
 Extract essential information in a format that allows understanding it in seconds, prioritizing what is urgent and what requires action from the recipient.
@@ -236,11 +225,13 @@ GENERAL STRUCTURE:
 
 [Complementary information if relevant]
 
-[Final note if applicable]";
+[Final note if applicable]
+EOD;
 
     return askGemini($instruction, $text);
 }
 
+// Answer Chat Questions
 function answerChatQuestion($question, $context)
 {
     $instruction = "You are a helpful assistant for a document. The user asks a question about the document provided below. " .
@@ -250,15 +241,11 @@ function answerChatQuestion($question, $context)
     return askGemini($instruction, $context);
 }
 
-
 // Sensitive Info Redaction
 function redactSensitiveData($text)
 {
-    // Emails
     $text = preg_replace('/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/', '[EMAIL REDACTED]', $text);
-    // Phone Numbers (Generic)
     $text = preg_replace('/(\+\d{1,3}[- ]?)?\d{10}/', '[PHONE REDACTED]', $text);
-    // SSN / ID patterns (Generic XXX-XX-XXXX)
     $text = preg_replace('/\b\d{3}-\d{2}-\d{4}\b/', '[ID REDACTED]', $text);
     return $text;
 }
@@ -266,7 +253,6 @@ function redactSensitiveData($text)
 // Main Logic
 $textToSimplify = "";
 $error = "";
-$isAjaxChat = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $type = $_POST['type'] ?? 'text';
@@ -311,7 +297,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "File upload error code: " . $file['error'];
         }
     } elseif ($type === 'text' && isset($_POST['content'])) {
-        $textToSimplify = $_POST['content'];
+        $textToSimplify = trim($_POST['content']);
+        if (strlen($textToSimplify) > 500000) {
+            $error = "Text is too long. Please upload as a file instead.";
+        }
     }
 }
 
@@ -320,26 +309,19 @@ $finalOutput = "";
 $hasSensitiveData = false;
 
 if (!empty($textToSimplify)) {
-    // Redact
     $redacted = redactSensitiveData($textToSimplify);
     if ($redacted !== $textToSimplify) {
         $hasSensitiveData = true;
     }
 
-    // Store context for Chat (Store the redacted version for privacy)
     $_SESSION['doc_context'] = $redacted;
-
-    // Simplify
     $finalOutput = simplifyTextWithAI($redacted);
 } else if (empty($error)) {
     $error = "No content provided.";
 }
-
-// Render Result Page
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -347,24 +329,17 @@ if (!empty($textToSimplify)) {
     <link rel="stylesheet" href="assets/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
-
 <body>
     <div class="container">
         <header class="main-header">
             <h1 class="logo">DocDigest</h1>
             <div class="flags-container" style="display:flex; gap:10px; margin-left: 20px; align-items:center;">
-                <img src="https://flagcdn.com/w40/us.png" alt="US" title="English" class="lang-flag" data-lang="en"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/es.png" alt="ES" title="Español" class="lang-flag" data-lang="es"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/fr.png" alt="FR" title="Français" class="lang-flag" data-lang="fr"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/de.png" alt="DE" title="Deutsch" class="lang-flag" data-lang="de"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/it.png" alt="IT" title="Italiano" class="lang-flag" data-lang="it"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/cn.png" alt="CN" title="中文" class="lang-flag" data-lang="cn"
-                    style="cursor:pointer; width:24px; transition:transform 0.2s;">
+                <img src="https://flagcdn.com/w40/us.png" alt="US" title="English" class="lang-flag" data-lang="en" style="cursor:pointer; width:24px; transition:transform 0.2s;">
+                <img src="https://flagcdn.com/w40/es.png" alt="ES" title="Español" class="lang-flag" data-lang="es" style="cursor:pointer; width:24px; transition:transform 0.2s;">
+                <img src="https://flagcdn.com/w40/fr.png" alt="FR" title="Français" class="lang-flag" data-lang="fr" style="cursor:pointer; width:24px; transition:transform 0.2s;">
+                <img src="https://flagcdn.com/w40/de.png" alt="DE" title="Deutsch" class="lang-flag" data-lang="de" style="cursor:pointer; width:24px; transition:transform 0.2s;">
+                <img src="https://flagcdn.com/w40/it.png" alt="IT" title="Italiano" class="lang-flag" data-lang="it" style="cursor:pointer; width:24px; transition:transform 0.2s;">
+                <img src="https://flagcdn.com/w40/cn.png" alt="CN" title="中文" class="lang-flag" data-lang="cn" style="cursor:pointer; width:24px; transition:transform 0.2s;">
             </div>
         </header>
 
@@ -383,24 +358,20 @@ if (!empty($textToSimplify)) {
 
                     <?php if ($hasSensitiveData): ?>
                         <div class="status-message">
-                            <strong>Notice:</strong> Sensitive information (emails, phones, IDs) has been redacted for your
-                            privacy.
+                            <strong>Notice:</strong> Sensitive information (emails, phones, IDs) has been redacted for your privacy.
                         </div>
                     <?php endif; ?>
 
                     <div class="output-content">
                         <?php
-                        // Try to parse as JSON for structured output
                         $cleanOutput = preg_replace('/^```json\s*|\s*```$/s', '', trim($finalOutput));
                         $jsonData = json_decode($cleanOutput, true);
 
-                        // Fallback: Try decoding original if cleaning failed (though cleaning usually helps)
                         if (!$jsonData) {
                             $jsonData = json_decode($finalOutput, true);
                         }
 
                         if ($jsonData && isset($jsonData['sections'])) {
-                            // Structured output
                             if (isset($jsonData['document_title'])) {
                                 echo '<div class="document-title" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem; color: var(--primary);">';
                                 echo htmlspecialchars($jsonData['document_title']);
@@ -427,7 +398,6 @@ if (!empty($textToSimplify)) {
                                 echo '</div>';
                             }
                         } else {
-                            // Fallback to plain text if JSON parsing fails
                             echo '<div style="white-space: pre-wrap; line-height: 1.7;">';
                             echo htmlspecialchars($finalOutput);
                             echo '</div>';
@@ -437,7 +407,6 @@ if (!empty($textToSimplify)) {
 
                     <div class="actions" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
                         <a href="index.php" class="btn secondary">Simplify Another</a>
-                        <!-- Download Form -->
                         <form action="download.php" method="POST" target="_blank" style="display:contents;">
                             <input type="hidden" name="content" value="<?php echo htmlspecialchars($finalOutput); ?>">
                             <button type="submit" name="format" value="txt" class="btn primary">Download TXT</button>
@@ -445,7 +414,6 @@ if (!empty($textToSimplify)) {
                         </form>
                     </div>
 
-                    <!-- Chat Section -->
                     <div class="chat-section">
                         <div class="chat-header">
                             <h3 id="chat-title">💬 Ask Questions about this Document</h3>
@@ -453,10 +421,7 @@ if (!empty($textToSimplify)) {
                                 Need to clarify something? Ask DocDigest below.
                             </p>
                         </div>
-                        <div id="chatBox" class="chat-box">
-                            <!-- Messages go here -->
-                            <!-- Messages go here -->
-                        </div>
+                        <div id="chatBox" class="chat-box"></div>
                         <div class="chat-input-area">
                             <input type="text" id="chatInput" placeholder="">
                             <button id="sendChatBtn" class="btn primary">Send</button>
@@ -468,10 +433,7 @@ if (!empty($textToSimplify)) {
         </main>
     </div>
 
-    <!-- Include script for chat functionality -->
-    <!-- Include script for chat functionality -->
     <script src="assets/i18n.js?v=2"></script>
     <script src="assets/script.js?v=2"></script>
 </body>
-
 </html>
