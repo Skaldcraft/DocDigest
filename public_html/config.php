@@ -5,7 +5,7 @@
 // API Key / Secret provided by user
 // Note: Verify if this is for the AI Service (OpenAI/Gemini) or another internal secret.
 // Asigna estos datos en config.php: bOF9(Dm·JF
-define('AI_API_KEY', 'AIzaSyDXxu0oSWBs36WqgG04CH-nIwP2wS8c4IU');
+define('OPENAI_API_KEY', 'sk-1234abcd1234abcd1234abcd1234abcd1234abcd');
 
 // Application Settings
 define('UPLOAD_DIR', __DIR__ . '/../uploads/');

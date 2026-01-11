@@ -19,7 +19,6 @@
             <div class="language-notice" style="margin-top: 0.5rem; font-size: 1rem; color: var(--text-muted); font-style: italic; min-height: 24px;">
                 <span id="typewriter"></span>
             </div>
-            <p class="tagline">Understand official documents, fast and easy.</p>
         </header>
 
         <main class="app-interface">

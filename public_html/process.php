@@ -102,28 +102,31 @@ function readPdf($filename)
     return $text;
 }
 
-// Gemini API Function
-function askGemini($instruction, $contextSource)
+// OpenAI API Function
+function askOpenAI($instruction, $contextSource)
 {
-    $apiKey = AI_API_KEY;
-    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . $apiKey;
+    $apiKey = OPENAI_API_KEY;
+    $url = "https://api.openai.com/v1/chat/completions";
 
     $combinedPrompt = $instruction . "\n\nSource Text:\n" . $contextSource;
 
     $data = [
-        "contents" => [
-            [
-                "parts" => [
-                    ["text" => $combinedPrompt]
-                ]
-            ]
-        ]
+        "model" => "gpt-3.5-turbo",
+        "messages" => [
+            ["role" => "system", "content" => $instruction],
+            ["role" => "user", "content" => $contextSource]
+        ],
+        "temperature" => 0.7,
+        "max_tokens" => 2048
     ];
 
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $apiKey
+    ]);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
 
     $ch_response = curl_exec($ch);
@@ -132,7 +135,7 @@ function askGemini($instruction, $contextSource)
     curl_close($ch);
 
     if ($curlError) {
-        error_log("Gemini API Error: " . $curlError);
+        error_log("OpenAI API Error: " . $curlError);
         return "Error connecting to AI service: " . $curlError;
     }
 
@@ -149,8 +152,8 @@ function askGemini($instruction, $contextSource)
 
     $json = json_decode($ch_response, true);
 
-    if (isset($json['candidates'][0]['content']['parts'][0]['text'])) {
-        return $json['candidates'][0]['content']['parts'][0]['text'];
+    if (isset($json['choices'][0]['message']['content'])) {
+        return $json['choices'][0]['message']['content'];
     } else {
         $debugInfo = $ch_response ? " Debug: " . substr($ch_response, 0, 300) : "";
         return "Could not parse AI response.$debugInfo";
@@ -257,7 +260,7 @@ EXAMPLE OUTPUT:
 <p>If you cannot attend, you can send an authorized legal representative with written authorization.</p>
 EOD;
 
-    return askGemini($instruction, $text);
+    return askOpenAI($instruction, $text);
 }
 
 // Answer Chat Questions
@@ -505,7 +508,7 @@ if (!empty($textToSimplify)) {
                             }
                         } else {
                             echo '<div style="white-space: pre-wrap; line-height: 1.7;">';
-                            echo htmlspecialchars($finalOutput);
+                            echo $finalOutput;
                             echo '</div>';
                         }
                         ?>
