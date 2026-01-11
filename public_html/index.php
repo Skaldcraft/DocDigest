@@ -15,13 +15,8 @@
 <body>
     <div class="container">
         <header class="main-header">
-            <div class="flags-container">
-                <img src="https://flagcdn.com/24x18/us.png" alt="English" title="English">
-                <img src="https://flagcdn.com/24x18/es.png" alt="Spanish" title="Spanish">
-                <img src="https://flagcdn.com/24x18/fr.png" alt="French" title="French">
-                <img src="https://flagcdn.com/24x18/de.png" alt="German" title="German">
-                <img src="https://flagcdn.com/24x18/it.png" alt="Italian" title="Italian">
-                <img src="https://flagcdn.com/24x18/cn.png" alt="Chinese" title="Chinese">
+            <div class="language-message">
+                <span id="typewriter-text"></span>
             </div>
             <h1 class="logo">DocDigest</h1>
             <p class="tagline">Understand official documents, fast and easy.</p>
@@ -48,6 +43,7 @@
                 <div id="tab-file" class="tab-content active">
                     <form id="fileForm" action="process.php" method="POST" enctype="multipart/form-data">
                         <input type="hidden" name="type" value="file">
+                        <input type="hidden" name="language" id="fileLanguage" value="en">
                         <div class="drop-zone" id="fileDropZone">
                             <p>Drag & Drop your file here</p>
                             <span>or</span>
@@ -73,6 +69,7 @@
                     <!-- Hidden form to submit extracted text -->
                     <form id="imageForm" action="process.php" method="POST">
                         <input type="hidden" name="type" value="text"> <!-- Treat as text after OCR -->
+                        <input type="hidden" name="language" id="imageLanguage" value="en">
                         <textarea name="content" id="imageExtractedText" style="display:none;"></textarea>
                         <button type="button" id="startOcrBtn" class="btn primary full-width">Extract &
                             Simplify</button>
@@ -83,6 +80,7 @@
                 <div id="tab-text" class="tab-content">
                     <form id="textForm" action="process.php" method="POST">
                         <input type="hidden" name="type" value="text">
+                        <input type="hidden" name="language" id="textLanguage" value="en">
                         <textarea name="content" placeholder="Paste the official text here..." rows="10"
                             required></textarea>
                         <button type="submit" class="btn primary full-width">Simplify Text</button>

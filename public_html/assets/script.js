@@ -1,5 +1,50 @@
 
 // assets/script.js
+let currentLang = 'en';
+
+// Typewriter for language message
+const messages = [
+    "DocuDigest recognizes most languages and responds in the same language",
+    "DocuDigest reconoce la mayoría de los idiomas y responde en el mismo idioma",
+    "DocuDigest reconnaît la plupart des langues et répond dans la même langue",
+    "DocuDigest riconosce la maggior parte delle lingue e risponde nella stessa lingua",
+    "DocuDigest reconhece a maioria dos idiomas e responde no mesmo idioma"
+];
+
+const typewriterElement = document.getElementById("typewriter-text");
+let msgIndex = 0;
+let charIndex = 0;
+
+function typeMessage() {
+    if (!typewriterElement) return;
+
+    const currentMessage = messages[msgIndex];
+    if (charIndex <= currentMessage.length) {
+        typewriterElement.textContent = currentMessage.substring(0, charIndex);
+        charIndex++;
+        setTimeout(typeMessage, 60);
+    } else {
+        setTimeout(() => {
+            eraseMessage();
+        }, 1500);
+    }
+}
+
+function eraseMessage() {
+    const currentMessage = messages[msgIndex];
+    if (charIndex >= 0) {
+        typewriterElement.textContent = currentMessage.substring(0, charIndex);
+        charIndex--;
+        setTimeout(eraseMessage, 30);
+    } else {
+        msgIndex = (msgIndex + 1) % messages.length;
+        setTimeout(typeMessage, 300);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    typeMessage();
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     // Tab Switching
@@ -161,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
+
         async function sendMessage() {
             const message = chatInput.value.trim();
             if (!message) return;
@@ -182,6 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const formData = new FormData();
                 formData.append('type', 'chat_question');
                 formData.append('question', message);
+                formData.append('language', currentLang); // NUEVO
 
                 const response = await fetch('process.php', {
                     method: 'POST',
@@ -207,6 +254,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error(error);
             }
         }
+// Sincronizar campos hidden de idioma en formularios
+function updateHiddenLanguageFields(lang) {
+    const fileLang = document.getElementById('fileLanguage');
+    const imageLang = document.getElementById('imageLanguage');
+    const textLang = document.getElementById('textLanguage');
+    if (fileLang) fileLang.value = lang;
+    if (imageLang) imageLang.value = lang;
+    if (textLang) textLang.value = lang;
+}
+
+// Hook para integración con i18n.js
+if (typeof switchLanguage === 'function') {
+    const originalSwitchLanguage = switchLanguage;
+    window.switchLanguage = function(lang) {
+        originalSwitchLanguage(lang);
+        updateHiddenLanguageFields(lang);
+    };
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar campos hidden con el idioma guardado
+    const savedLang = localStorage.getItem('docdigest_lang') || 'en';
+    updateHiddenLanguageFields(savedLang);
+});
 
         sendChatBtn.addEventListener('click', sendMessage);
         chatInput.addEventListener('keypress', (e) => {

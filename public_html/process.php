@@ -1,4 +1,7 @@
+
 <?php
+// Limpieza de caché OPCache temporal (quitar después de testing)
+opcache_reset(); // Solo para testing, quítalo después
 // public_html/process.php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -65,6 +68,19 @@ function readPdf($filename)
                     $text .= $cleaned;
                 }
             }
+
+                    // Leer idioma del POST
+                    $lang = $_POST['language'] ?? 'en';
+                    $langNames = [
+                      'en' => 'English',
+                      'es' => 'Spanish',
+                      'fr' => 'French',
+                      'de' => 'German',
+                      'it' => 'Italian',
+                      'cn' => 'Chinese'
+                    ];
+                    $langName = $langNames[$lang] ?? 'English';
+
         }
     }
 
@@ -75,6 +91,10 @@ function readPdf($filename)
                 if ($decompressed !== false) {
                     $stream = $decompressed;
                 }
+
+                            // Incluir idioma en el prompt
+                            $instruction = "You are a helpful assistant for a document. The user asks a question about the document provided below. ".
+                                "Always respond in $langName. Answer briefly, clearly, and friendly.\n\nUser Question: $question";
 
                 if (preg_match_all('/\((.*?)\)/s', $stream, $textMatches)) {
                     foreach ($textMatches[1] as $t) {
@@ -110,7 +130,7 @@ function askGemini($instruction, $contextSource)
 
     $combinedPrompt = $instruction . "\n\nSource Text:\n" . $contextSource;
 
-    $data = [
+                        $finalOutput = simplifyTextWithAI($redacted, $langName);
         "contents" => [
             [
                 "parts" => [
@@ -160,8 +180,10 @@ function askGemini($instruction, $contextSource)
 // Simplify Document with AI
 function simplifyTextWithAI($text)
 {
-    $instruction = <<<'EOD'
+     $instruction = <<<'EOD'
 You are DocDigest. You are an assistant that translates official and bureaucratic documents into clear and accessible language.
+
+IMPORTANT: Always respond in the SAME LANGUAGE as the source document. If the document is in Spanish, respond in Spanish. If in English, respond in English.
 
 OBJECTIVE:
 Extract essential information in a format that allows understanding it in seconds, prioritizing what is urgent and what requires action from the recipient.
@@ -169,48 +191,48 @@ Extract essential information in a format that allows understanding it in second
 FORMAT RULES:
 
 1. HEADER:
-   - Line 1: [AGENCY] - [Document type in simple language]
-   - Example: "SEPE - Unemployment benefit" / "Tax Agency - Payment claim" / "Court - Summons"
+    - Line 1: [AGENCY] - [Document type in simple language]
+    - Example: "SEPE - Unemployment benefit" / "Tax Agency - Payment claim" / "Court - Summons"
 
 2. STATUS/OUTCOME (if applicable):
-   - Use ✅ for approvals/favorable outcomes
-   - Use ❌ for denials/unfavorable outcomes
-   - Use ⚠️ for alerts or situations requiring attention
-   - One keyword: Approved/Denied/Pending/Required
+    - Use ✅ for approvals/favorable outcomes
+    - Use ❌ for denials/unfavorable outcomes
+    - Use ⚠️ for alerts or situations requiring attention
+    - One keyword: Approved/Denied/Pending/Required
 
 3. KEY INFORMATION:
-   - Format: **Label:** Value
-   - Prioritize: amounts, dates, deadlines, obligations
-   - Translate technical terms: "prestación contributiva" → "unemployment benefit", "recurso de reposición" → "appeal"
-   - If you mention a technical term for the first time, clarify it in parentheses
+    - Format: **Label:** Value
+    - Prioritize: amounts, dates, deadlines, obligations
+    - Translate technical terms: "prestación contributiva" → "unemployment benefit", "recurso de reposición" → "appeal"
+    - If you mention a technical term for the first time, clarify it in parentheses
 
 4. DEADLINES AND URGENT ACTIONS:
-   - Always at the beginning, after the status
-   - Convert relative deadlines into absolute dates
-   - Example: "one month from receipt" → "Until February 3, 2026"
-   - If a deadline has already passed: "⚠️ WARNING: This deadline ALREADY EXPIRED on [date]. Contact [agency] urgently to know your options."
+    - Always at the beginning, after the status
+    - Convert relative deadlines into absolute dates
+    - Example: "one month from receipt" → "Until February 3, 2026"
+    - If a deadline has already passed: "⚠️ WARNING: This deadline ALREADY EXPIRED on [date]. Contact [agency] urgently to know your options."
 
 5. SUMMONS/APPOINTMENTS:
-   - Format: The summoned person must appear on [day] at [time] at [complete address]
-   - Indicate what to bring if specified in the document
+    - Format: The summoned person must appear on [day] at [time] at [complete address]
+    - Indicate what to bring if specified in the document
 
 6. ANONYMIZATION:
-   - DO NOT include personal names (replace with "the recipient" or "the person receiving this document")
-   - DO NOT include ID numbers, personal addresses, phone numbers
-   - DO NOT include names of officials/signatories unless necessary for action (e.g., "must meet with Dr. Pérez")
-   - DO NOT include case numbers unless their importance is explicitly mentioned
-   - DO include agency addresses if physical attendance is required
+    - DO NOT include personal names (replace with "the recipient" or "the person receiving this document")
+    - DO NOT include ID numbers, personal addresses, phone numbers
+    - DO NOT include names of officials/signatories unless necessary for action (e.g., "must meet with Dr. Pérez")
+    - DO NOT include case numbers unless their importance is explicitly mentioned
+    - DO include agency addresses if physical attendance is required
 
 7. TONE:
-   - Neutral and informative
-   - Cordial but without emotional involvement
-   - Direct and concise
-   - Conversational but professional
+    - Neutral and informative
+    - Cordial but without emotional involvement
+    - Direct and concise
+    - Conversational but professional
 
 8. FINAL NOTES (if applicable):
-   - Non-urgent complementary information
-   - Format: brief note at the very end
-   - Example: "Providing the case number will speed up the process"
+    - Non-urgent complementary information
+    - Format: brief note at the very end
+    - Example: "Providing the case number will speed up the process"
 
 GENERAL STRUCTURE:
 [AGENCY] - [Document type]
