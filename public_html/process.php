@@ -1,7 +1,4 @@
-
 <?php
-// Limpieza de caché OPCache temporal (quitar después de testing)
-opcache_reset(); // Solo para testing, quítalo después
 // public_html/process.php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -68,19 +65,6 @@ function readPdf($filename)
                     $text .= $cleaned;
                 }
             }
-
-                    // Leer idioma del POST
-                    $lang = $_POST['language'] ?? 'en';
-                    $langNames = [
-                      'en' => 'English',
-                      'es' => 'Spanish',
-                      'fr' => 'French',
-                      'de' => 'German',
-                      'it' => 'Italian',
-                      'cn' => 'Chinese'
-                    ];
-                    $langName = $langNames[$lang] ?? 'English';
-
         }
     }
 
@@ -91,10 +75,6 @@ function readPdf($filename)
                 if ($decompressed !== false) {
                     $stream = $decompressed;
                 }
-
-                            // Incluir idioma en el prompt
-                            $instruction = "You are a helpful assistant for a document. The user asks a question about the document provided below. ".
-                                "Always respond in $langName. Answer briefly, clearly, and friendly.\n\nUser Question: $question";
 
                 if (preg_match_all('/\((.*?)\)/s', $stream, $textMatches)) {
                     foreach ($textMatches[1] as $t) {
@@ -130,7 +110,7 @@ function askGemini($instruction, $contextSource)
 
     $combinedPrompt = $instruction . "\n\nSource Text:\n" . $contextSource;
 
-                        $finalOutput = simplifyTextWithAI($redacted, $langName);
+    $data = [
         "contents" => [
             [
                 "parts" => [
@@ -180,74 +160,101 @@ function askGemini($instruction, $contextSource)
 // Simplify Document with AI
 function simplifyTextWithAI($text)
 {
-     $instruction = <<<'EOD'
+    $instruction = <<<'EOD'
 You are DocDigest. You are an assistant that translates official and bureaucratic documents into clear and accessible language.
 
-IMPORTANT: Always respond in the SAME LANGUAGE as the source document. If the document is in Spanish, respond in Spanish. If in English, respond in English.
+CRITICAL: Always respond in the SAME LANGUAGE as the source document. Detect the language automatically:
+- If the document is in Spanish, respond entirely in Spanish
+- If the document is in English, respond entirely in English
+- If the document is in French, respond entirely in French
+- If the document is in German, respond entirely in German
+- If the document is in Italian, respond entirely in Italian
+- And so on for any language
 
 OBJECTIVE:
 Extract essential information in a format that allows understanding it in seconds, prioritizing what is urgent and what requires action from the recipient.
 
+OUTPUT FORMAT - IMPORTANT:
+Generate clean HTML (no Markdown). Use these HTML elements:
+
+- <h2> for the main header: [AGENCY] - [Document type]
+- <div class="status-approved"> ✅ Approved</div> (or status-denied, status-alert)
+- <div class="urgent-action"> ⚠️ [Urgent action/Deadline]</div>
+- <div class="key-info">
+    <strong>Label:</strong> value<br>
+    <strong>Label:</strong> value
+  </div>
+- <p> for additional information
+- <div class="note">Final notes if applicable</div>
+
+CSS classes available:
+- .status-approved (green background)
+- .status-denied (red background)
+- .status-alert (yellow background)
+- .urgent-action (bold, red border, large)
+- .key-info (highlighted box)
+- .note (gray, italic, small)
+
+STYLE RULES:
+- Use <strong> for ALL important data: amounts, dates, deadlines, names of places
+- Keep it clean and scannable
+- No Markdown syntax (**text**, - lists, etc.)
+- Pure HTML only
+
 FORMAT RULES:
 
 1. HEADER:
-    - Line 1: [AGENCY] - [Document type in simple language]
-    - Example: "SEPE - Unemployment benefit" / "Tax Agency - Payment claim" / "Court - Summons"
+   - Line 1: <h2>[AGENCY] - [Document type in simple language]</h2>
+   - Example: <h2>SEPE - Unemployment benefit</h2>
 
 2. STATUS/OUTCOME (if applicable):
-    - Use ✅ for approvals/favorable outcomes
-    - Use ❌ for denials/unfavorable outcomes
-    - Use ⚠️ for alerts or situations requiring attention
-    - One keyword: Approved/Denied/Pending/Required
+   - <div class="status-approved">✅ Approved</div>
+   - <div class="status-denied">❌ Denied</div>
+   - <div class="status-alert">⚠️ Required</div>
 
 3. KEY INFORMATION:
-    - Format: **Label:** Value
-    - Prioritize: amounts, dates, deadlines, obligations
-    - Translate technical terms: "prestación contributiva" → "unemployment benefit", "recurso de reposición" → "appeal"
-    - If you mention a technical term for the first time, clarify it in parentheses
+   - Wrap in <div class="key-info">...</div>
+   - Use <strong> for labels and important values
+   - Prioritize: amounts, dates, deadlines, obligations
+   - Translate technical terms or clarify in parentheses
 
 4. DEADLINES AND URGENT ACTIONS:
-    - Always at the beginning, after the status
-    - Convert relative deadlines into absolute dates
-    - Example: "one month from receipt" → "Until February 3, 2026"
-    - If a deadline has already passed: "⚠️ WARNING: This deadline ALREADY EXPIRED on [date]. Contact [agency] urgently to know your options."
+   - <div class="urgent-action">⚠️ DEADLINE: Until [date]</div>
+   - Always at the beginning, after status
+   - Convert relative deadlines into absolute dates
+   - If expired: <div class="urgent-action">⚠️ WARNING: This deadline ALREADY EXPIRED on [date]. Contact [agency] urgently.</div>
 
 5. SUMMONS/APPOINTMENTS:
-    - Format: The summoned person must appear on [day] at [time] at [complete address]
-    - Indicate what to bring if specified in the document
+   - The summoned person must appear on <strong>[day]</strong> at <strong>[time]</strong> at <strong>[complete address]</strong>
+   - List what to bring with <br> tags
 
 6. ANONYMIZATION:
-    - DO NOT include personal names (replace with "the recipient" or "the person receiving this document")
-    - DO NOT include ID numbers, personal addresses, phone numbers
-    - DO NOT include names of officials/signatories unless necessary for action (e.g., "must meet with Dr. Pérez")
-    - DO NOT include case numbers unless their importance is explicitly mentioned
-    - DO include agency addresses if physical attendance is required
+   - DO NOT include personal names (replace with "the recipient")
+   - DO NOT include ID numbers, personal addresses, phone numbers
+   - DO NOT include names of officials unless necessary
+   - DO include agency addresses if physical attendance required
 
 7. TONE:
-    - Neutral and informative
-    - Cordial but without emotional involvement
-    - Direct and concise
-    - Conversational but professional
+   - Neutral and informative
+   - Direct and concise
+   - Conversational but professional
 
-8. FINAL NOTES (if applicable):
-    - Non-urgent complementary information
-    - Format: brief note at the very end
-    - Example: "Providing the case number will speed up the process"
+8. FINAL NOTES:
+   - <div class="note">Additional info here</div>
 
-GENERAL STRUCTURE:
-[AGENCY] - [Document type]
-
-[Status with icon if applicable]
-
-⚠️ [Urgent action/Deadline] (if exists)
-
-**Key data 1:** value
-**Key data 2:** value
-**Key data 3:** value
-
-[Complementary information if relevant]
-
-[Final note if applicable]
+EXAMPLE OUTPUT:
+<h2>Tax Agency - Appointment for tax review</h2>
+<div class="urgent-action">⚠️ MANDATORY APPOINTMENT: January 20, 2026 at 9:30 AM</div>
+<div class="key-info">
+<strong>When:</strong> January 20, 2026 at 9:30 AM<br>
+<strong>Where:</strong> Tax Agency - Gijón Office<br>
+<strong>Reason:</strong> Review of 2024 income tax return
+</div>
+<p><strong>What to bring:</strong><br>
+- Income and withholding certificates<br>
+- Proof of deductions applied<br>
+- Bank statements for 2024</p>
+<p>If you cannot attend, you can send an authorized legal representative with written authorization.</p>
 EOD;
 
     return askGemini($instruction, $text);
@@ -350,19 +357,96 @@ if (!empty($textToSimplify)) {
     <title>DocDigest - Result</title>
     <link rel="stylesheet" href="assets/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Styles for AI-generated HTML output */
+        .output-content h2 {
+            color: var(--primary);
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 0.5rem;
+        }
+        
+        .status-approved {
+            background: #D1FAE5;
+            color: #065F46;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .status-denied {
+            background: #FEE2E2;
+            color: #991B1B;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .status-alert {
+            background: #FEF3C7;
+            color: #92400E;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .urgent-action {
+            background: #FEE2E2;
+            border: 2px solid #DC2626;
+            color: #991B1B;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .key-info {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(59, 130, 246, 0.08));
+            border-left: 4px solid var(--primary);
+            padding: 1.25rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            line-height: 1.8;
+        }
+        
+        .key-info strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .note {
+            background: #F3F4F6;
+            color: #6B7280;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+        
+        .output-content p {
+            line-height: 1.7;
+            margin: 1rem 0;
+        }
+        
+        .output-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header class="main-header">
             <h1 class="logo">DocDigest</h1>
-            <div class="flags-container" style="display:flex; gap:10px; margin-left: 20px; align-items:center;">
-                <img src="https://flagcdn.com/w40/us.png" alt="US" title="English" class="lang-flag" data-lang="en" style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/es.png" alt="ES" title="Español" class="lang-flag" data-lang="es" style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/fr.png" alt="FR" title="Français" class="lang-flag" data-lang="fr" style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/de.png" alt="DE" title="Deutsch" class="lang-flag" data-lang="de" style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/it.png" alt="IT" title="Italiano" class="lang-flag" data-lang="it" style="cursor:pointer; width:24px; transition:transform 0.2s;">
-                <img src="https://flagcdn.com/w40/cn.png" alt="CN" title="中文" class="lang-flag" data-lang="cn" style="cursor:pointer; width:24px; transition:transform 0.2s;">
-            </div>
         </header>
 
         <main class="app-interface">

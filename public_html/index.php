@@ -15,10 +15,10 @@
 <body>
     <div class="container">
         <header class="main-header">
-            <div class="language-message">
-                <span id="typewriter-text"></span>
-            </div>
             <h1 class="logo">DocDigest</h1>
+            <div class="language-notice" style="margin-top: 0.5rem; font-size: 1rem; color: var(--text-muted); font-style: italic; min-height: 24px;">
+                <span id="typewriter"></span>
+            </div>
             <p class="tagline">Understand official documents, fast and easy.</p>
         </header>
 
@@ -116,6 +116,52 @@
     <script src="assets/i18n.js?v=2"></script>
     <script src="assets/processing-timer.js?v=2"></script>
     <script src="assets/script.js?v=2"></script>
+    <script>
+    // Typewriter effect for language notice
+    (function() {
+        const messages = [
+            "DocDigest recognizes most languages and responds in the same language",
+            "DocDigest reconoce la mayoría de idiomas y responde en el mismo idioma",
+            "DocDigest reconnaît la plupart des langues et répond dans la même langue",
+            "DocDigest riconosce la maggior parte delle lingue e risponde nella stessa lingua",
+            "DocDigest reconhece a maioria dos idiomas e responde no mesmo idioma"
+        ];
+        
+        let messageIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        const typewriterEl = document.getElementById('typewriter');
+        const typingSpeed = 50;
+        const deletingSpeed = 30;
+        const pauseBetweenMessages = 3000;
+        const pauseBeforeDelete = 2000;
+        
+        function type() {
+            const currentMessage = messages[messageIndex];
+            
+            if (!isDeleting && charIndex <= currentMessage.length) {
+                typewriterEl.textContent = currentMessage.substring(0, charIndex);
+                charIndex++;
+                setTimeout(type, typingSpeed);
+            } else if (!isDeleting && charIndex > currentMessage.length) {
+                setTimeout(() => {
+                    isDeleting = true;
+                    type();
+                }, pauseBeforeDelete);
+            } else if (isDeleting && charIndex > 0) {
+                typewriterEl.textContent = currentMessage.substring(0, charIndex - 1);
+                charIndex--;
+                setTimeout(type, deletingSpeed);
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                messageIndex = (messageIndex + 1) % messages.length;
+                setTimeout(type, 500);
+            }
+        }
+        
+        type();
+    })();
+    </script>
 </body>
 
 </html>
