@@ -102,22 +102,22 @@ function readPdf($filename)
     return $text;
 }
 
-// OpenAI API Function
-function askOpenAI($instruction, $contextSource)
+// OpenRouter API Function
+function askAI($instruction, $contextSource)
 {
-    $apiKey = OPENAI_API_KEY;
-    $url = "https://api.openai.com/v1/chat/completions";
+    $apiKey = OPENAI_API_KEY; // Using OPENAI_API_KEY constant from config
+    $url = "https://openrouter.ai/api/v1/chat/completions";
 
     $combinedPrompt = $instruction . "\n\nSource Text:\n" . $contextSource;
 
     $data = [
-        "model" => "gpt-3.5-turbo",
+        "model" => "deepseek/deepseek-r1",
         "messages" => [
-            ["role" => "system", "content" => $instruction],
-            ["role" => "user", "content" => $contextSource]
-        ],
-        "temperature" => 0.7,
-        "max_tokens" => 2048
+            [
+                "role" => "user",
+                "content" => $combinedPrompt
+            ]
+        ]
     ];
 
     $ch = curl_init($url);
@@ -125,7 +125,9 @@ function askOpenAI($instruction, $contextSource)
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
-        'Authorization: Bearer ' . $apiKey
+        'Authorization: Bearer ' . $apiKey,
+        'HTTP-Referer: https://docdigest.app',
+        'X-Title: DocDigest'
     ]);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
 
@@ -135,19 +137,16 @@ function askOpenAI($instruction, $contextSource)
     curl_close($ch);
 
     if ($curlError) {
-        error_log("OpenAI API Error: " . $curlError);
+        error_log("API Error: " . $curlError);
         return "Error connecting to AI service: " . $curlError;
     }
 
     if ($httpCode !== 200) {
         $errorLog = "API Error Details:\n";
         $errorLog .= "HTTP Code: $httpCode\n";
-        $errorLog .= "URL: $url\n";
         $errorLog .= "Response: " . ($ch_response ? $ch_response : "No response") . "\n";
         error_log($errorLog);
-
-        $errorDetails = $ch_response ? " | Response: " . substr($ch_response, 0, 500) : "";
-        return "AI Service Error (HTTP $httpCode).$errorDetails";
+        return "AI Service Error (HTTP $httpCode). Check your API key.";
     }
 
     $json = json_decode($ch_response, true);
@@ -155,8 +154,8 @@ function askOpenAI($instruction, $contextSource)
     if (isset($json['choices'][0]['message']['content'])) {
         return $json['choices'][0]['message']['content'];
     } else {
-        $debugInfo = $ch_response ? " Debug: " . substr($ch_response, 0, 300) : "";
-        return "Could not parse AI response.$debugInfo";
+        error_log("Unexpected API response: " . $ch_response);
+        return "Could not parse AI response.";
     }
 }
 
@@ -260,7 +259,7 @@ EXAMPLE OUTPUT:
 <p>If you cannot attend, you can send an authorized legal representative with written authorization.</p>
 EOD;
 
-    return askOpenAI($instruction, $text);
+    return askAI($instruction, $text);
 }
 
 // Answer Chat Questions
@@ -270,7 +269,7 @@ function answerChatQuestion($question, $context)
         "Answer briefly, clearly, and friendly. Answer in the same language as the User's Question." .
         "\n\nUser Question: " . $question;
 
-    return askGemini($instruction, $context);
+    return askAI($instruction, $context);
 }
 
 // Sensitive Info Redaction
@@ -508,7 +507,7 @@ if (!empty($textToSimplify)) {
                             }
                         } else {
                             echo '<div style="white-space: pre-wrap; line-height: 1.7;">';
-                            echo $finalOutput;
+                            echo htmlspecialchars($finalOutput);
                             echo '</div>';
                         }
                         ?>
