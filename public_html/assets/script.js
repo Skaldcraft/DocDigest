@@ -284,4 +284,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'Enter') sendMessage();
         });
     }
+
+    // Function to switch between tabs
+function switchTab(tabName) {
+    // Remove 'active' class from all tab buttons
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    // Hide all tab contents
+    const tabs = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    
+    // Add 'active' class to clicked button
+    event.target.closest('.tab-btn').classList.add('active');
+    
+    // Show the corresponding tab content
+    const targetTab = document.getElementById('tab-' + tabName);
+    if (targetTab) {
+        targetTab.classList.add('active');
+    }
+}
 });
