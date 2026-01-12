@@ -297,8 +297,8 @@ function switchTab(tabName) {
     tabs.forEach(tab => tab.classList.remove('active'));
     
     // Add 'active' class to clicked button
-    window.event.target.closest('.tab-btn').classList.add('active');
-    
+    // Add 'active' class to the button that matches tabName
+    document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');    
     // Show the corresponding tab content
     const targetTab = document.getElementById('tab-' + tabName);
     if (targetTab) {
