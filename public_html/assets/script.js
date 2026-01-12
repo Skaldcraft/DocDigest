@@ -1,52 +1,34 @@
-
 // assets/script.js
-let currentLang = 'en';
-
-// Typewriter for language message
-const messages = [
-    "DocuDigest recognizes most languages and responds in the same language",
-    "DocuDigest reconoce la mayoría de los idiomas y responde en el mismo idioma",
-    "DocuDigest reconnaît la plupart des langues et répond dans la même langue",
-    "DocuDigest riconosce la maggior parte delle lingue e risponde nella stessa lingua",
-    "DocuDigest reconhece a maioria dos idiomas e responde no mesmo idioma"
-];
-
-const typewriterElement = document.getElementById("typewriter-text");
-let msgIndex = 0;
-let charIndex = 0;
-
-function typeMessage() {
-    if (!typewriterElement) return;
-
-    const currentMessage = messages[msgIndex];
-    if (charIndex <= currentMessage.length) {
-        typewriterElement.textContent = currentMessage.substring(0, charIndex);
-        charIndex++;
-        setTimeout(typeMessage, 60);
-    } else {
-        setTimeout(() => {
-            eraseMessage();
-        }, 1500);
-    }
+// Function to switch between tabs
+function switchTab(tabName) {
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    const tabs = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    
+    const clickedButton = document.querySelector(`button[onclick*="${tabName}"]`);
+    if (clickedButton) clickedButton.classList.add('active');
+    
+    const targetTab = document.getElementById('tab-' + tabName);
+    if (targetTab) targetTab.classList.add('active');
 }
 
-function eraseMessage() {
-    const currentMessage = messages[msgIndex];
-    if (charIndex >= 0) {
-        typewriterElement.textContent = currentMessage.substring(0, charIndex);
-        charIndex--;
-        setTimeout(eraseMessage, 30);
-    } else {
-        msgIndex = (msgIndex + 1) % messages.length;
-        setTimeout(typeMessage, 300);
-    }
+// Update hidden language fields
+function updateHiddenLanguageFields(lang) {
+    const fileLang = document.getElementById('fileLanguage');
+    const imageLang = document.getElementById('imageLanguage');
+    const textLang = document.getElementById('textLanguage');
+    if (fileLang) fileLang.value = lang;
+    if (imageLang) imageLang.value = lang;
+    if (textLang) textLang.value = lang;
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-    typeMessage();
-});
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize language fields
+    const savedLang = localStorage.getItem('docdigest_lang') || 'en';
+    currentLang = savedLang;
+    updateHiddenLanguageFields(savedLang);
 
     // File Drag & Drop
     const fileDropZone = document.getElementById('fileDropZone');
@@ -67,25 +49,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         fileDropZone.addEventListener('drop', (e) => {
             e.preventDefault();
-
             if (e.dataTransfer.files.length) {
                 fileInput.files = e.dataTransfer.files;
-                const fileName = e.dataTransfer.files[0].name;
-                showUploadSuccess(fileName);
+                showUploadSuccess(e.dataTransfer.files[0].name);
             }
         });
 
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length) {
-                const fileName = fileInput.files[0].name;
-                showUploadSuccess(fileName);
+                showUploadSuccess(fileInput.files[0].name);
             }
         });
 
         function showUploadSuccess(fileName) {
-            console.log('File uploaded:', fileName); // Debug
             const dropZoneText = fileDropZone.querySelector('p');
-            // Get translated success message from global translations or default
             const successMsg = (typeof translations !== 'undefined' && translations[currentLang])
                 ? translations[currentLang].uploadedSuccess
                 : "✓ Uploaded successfully";
@@ -114,24 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Privacy Notice Translation Hook
-    const privacyNotice = document.querySelector('.status-message strong');
-    if (privacyNotice && typeof translations !== 'undefined') {
-        const sensitiveText = document.querySelector('.status-message');
-        if (sensitiveText && sensitiveText.innerHTML.includes('Sensitive information')) {
-            const t = translations[currentLang] || translations['en'];
-            // This is a simple replacement, ideally done on server-side or via full text replacement
-            // For now, we will handle it in i18n.js update to be cleaner.
-        }
-    }
-
-    // ... (rest of Tesseract and Chat code remains similar, ensuring chat UI classes are used)
-
+    // OCR Functionality
     const imageInput = document.getElementById('imageInput');
     const imageForm = document.getElementById('imageForm');
     const ocrStatus = document.getElementById('ocr-status');
     const ocrProgress = document.getElementById('ocr-progress');
     const extractedTextarea = document.getElementById('imageExtractedText');
+    const startOcrBtn = document.getElementById('startOcrBtn');
 
     if (startOcrBtn && imageInput) {
         startOcrBtn.addEventListener('click', async () => {
@@ -141,28 +107,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const imageFile = imageInput.files[0];
-
             ocrStatus.classList.remove('hidden');
             ocrProgress.textContent = "Initializing OCR Engine...";
             startOcrBtn.disabled = true;
 
             try {
                 const worker = await Tesseract.createWorker('eng');
-                // Load multiple languages for better detection
                 await worker.loadLanguage('eng+spa+fra+deu');
                 await worker.initialize('eng+spa+fra+deu');
-
-                ocrProgress.textContent = "Recognizing text... (This may take a moment)";
+                ocrProgress.textContent = "Recognizing text...";
 
                 const { data: { text } } = await worker.recognize(imageFile);
-
                 await worker.terminate();
 
                 if (!text || text.trim().length === 0) {
                     throw new Error("No text found in image.");
                 }
 
-                ocrProgress.textContent = "Text extracted! Sending for simplification...";
+                ocrProgress.textContent = "Text extracted! Sending...";
                 extractedTextarea.value = text;
                 imageForm.submit();
 
@@ -180,7 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatBox = document.getElementById('chatBox');
 
     if (chatInput && sendChatBtn && chatBox) {
-        // Scroll to bottom initially
         chatBox.scrollTop = chatBox.scrollHeight;
 
         function addMessage(text, sender) {
@@ -191,16 +152,13 @@ document.addEventListener('DOMContentLoaded', () => {
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-
         async function sendMessage() {
             const message = chatInput.value.trim();
             if (!message) return;
 
-            // UI Update
             addMessage(message, 'user');
             chatInput.value = '';
 
-            // Show loading state (could be improved)
             const loadingDiv = document.createElement('div');
             loadingDiv.classList.add('chat-message', 'ai');
             loadingDiv.textContent = '...';
@@ -209,11 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
             chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
-                // Send to Backend
                 const formData = new FormData();
                 formData.append('type', 'chat_question');
                 formData.append('question', message);
-                formData.append('language', currentLang); // NUEVO
+                formData.append('language', currentLang);
 
                 const response = await fetch('process.php', {
                     method: 'POST',
@@ -222,7 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const data = await response.json();
 
-                // Remove loading
                 const loader = document.getElementById('chat-loading');
                 if (loader) loader.remove();
 
@@ -239,55 +195,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error(error);
             }
         }
-// Sincronizar campos hidden de idioma en formularios
-function updateHiddenLanguageFields(lang) {
-    const fileLang = document.getElementById('fileLanguage');
-    const imageLang = document.getElementById('imageLanguage');
-    const textLang = document.getElementById('textLanguage');
-    if (fileLang) fileLang.value = lang;
-    if (imageLang) imageLang.value = lang;
-    if (textLang) textLang.value = lang;
-}
-
-// Hook para integración con i18n.js
-if (typeof switchLanguage === 'function') {
-    const originalSwitchLanguage = switchLanguage;
-    window.switchLanguage = function(lang) {
-        originalSwitchLanguage(lang);
-        updateHiddenLanguageFields(lang);
-    };
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Inicializar campos hidden con el idioma guardado
-    const savedLang = localStorage.getItem('docdigest_lang') || 'en';
-    updateHiddenLanguageFields(savedLang);
-});
 
         sendChatBtn.addEventListener('click', sendMessage);
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
     }
+});
 
-    // Function to switch between tabs
-    
-function switchTab(tabName) {
-    // Remove 'active' class from all tab buttons
-    const buttons = document.querySelectorAll('.tab-btn');
-    buttons.forEach(btn => btn.classList.remove('active'));
-    
-    // Hide all tab contents
-    const tabs = document.querySelectorAll('.tab-content');
-    tabs.forEach(tab => tab.classList.remove('active'));
-    
-    // Add 'active' class to clicked button
-    // Add 'active' class to the button that matches tabName
-    document.querySelector(`button[onclick="50
-    ('${tabName}')"]`).classList.add('active');    
-    // Show the corresponding tab content
-    const targetTab = document.getElementById('tab-' + tabName);
-    if (targetTab) {
-        targetTab.classList.add('active');
-    }
-}});
+// Hook for i18n.js integration
+if (typeof switchLanguage === 'function') {
+    const originalSwitchLanguage = switchLanguage;
+    window.switchLanguage = function(lang) {
+        originalSwitchLanguage(lang);
+        currentLang = lang;
+        updateHiddenLanguageFields(lang);
+    };
+}
