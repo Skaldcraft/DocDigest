@@ -286,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Function to switch between tabs
+    
 function switchTab(tabName) {
     // Remove 'active' class from all tab buttons
     const buttons = document.querySelectorAll('.tab-btn');
@@ -296,12 +297,11 @@ function switchTab(tabName) {
     tabs.forEach(tab => tab.classList.remove('active'));
     
     // Add 'active' class to clicked button
-    event.target.closest('.tab-btn').classList.add('active');
+    window.event.target.closest('.tab-btn').classList.add('active');
     
     // Show the corresponding tab content
     const targetTab = document.getElementById('tab-' + tabName);
     if (targetTab) {
         targetTab.classList.add('active');
     }
-}
-});
+}});
