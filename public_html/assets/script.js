@@ -47,21 +47,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Tab Switching
-    window.switchTab = function (tabName) {
-        // Update Buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        const activeBtn = document.querySelector(`.tab-btn[onclick="switchTab('${tabName}')"]`);
-        if (activeBtn) activeBtn.classList.add('active');
-
-        // Update Content
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.remove('active');
-        });
-        document.getElementById(`tab-${tabName}`).classList.add('active');
-    };
 
     // File Drag & Drop
     const fileDropZone = document.getElementById('fileDropZone');
@@ -298,7 +283,8 @@ function switchTab(tabName) {
     
     // Add 'active' class to clicked button
     // Add 'active' class to the button that matches tabName
-    document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');    
+    document.querySelector(`button[onclick="50
+    ('${tabName}')"]`).classList.add('active');    
     // Show the corresponding tab content
     const targetTab = document.getElementById('tab-' + tabName);
     if (targetTab) {
