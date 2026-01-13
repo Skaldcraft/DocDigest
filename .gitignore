@@ -1,1 +1,28 @@
-/DocDigest.txt
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de documentación y ejemplos
+*.txt
+!README.txt
+
+# Uploads de usuarios (mantener carpeta vacía)
+/public_html/uploads/*
+!public_html/uploads/.gitkeep
+
+# Configuraciones locales
+config.local.php
+.env
+.env.local
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de deploy
+ftp-deploy-sync-state.json
+
+# Logs
+*.log
