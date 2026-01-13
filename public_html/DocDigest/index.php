@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRUEBA</title>
+    <title>DocDigest - Simplify Bureaucracy</title>
     <link rel="stylesheet" href="assets/style.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
@@ -12,13 +12,14 @@
     <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
 </head>
 
-<body>githu
+<body>
     <div class="container">
         <header class="main-header">
             <h1 class="logo">DocDigest</h1>
             <div class="language-notice" style="margin-top: 0.5rem; font-size: 1rem; color: var(--text-muted); font-style: italic; min-height: 24px;">
                 <span id="typewriter"></span>
             </div>
+            <p class="tagline">Understand official documents, fast and easy.</p>
         </header>
 
         <main class="app-interface">
@@ -112,11 +113,11 @@
         </footer>
     </div>
 
-
     <script src="assets/i18n.js?v=2"></script>
     <script src="assets/processing-timer.js?v=2"></script>
+    <script src="assets/script.js?v=2"></script>
     <script>
-    // Typewriter effect for language notice
+    // Fade-in effect for language notice
     (function() {
         const messages = [
             "DocDigest recognizes most languages and responds in the same language",
@@ -126,43 +127,25 @@
             "DocDigest reconhece a maioria dos idiomas e responde no mesmo idioma"
         ];
         
-        let messageIndex = 0;
-        let charIndex = 0;
-        let isDeleting = false;
         const typewriterEl = document.getElementById('typewriter');
-        const typingSpeed = 50;
-        const deletingSpeed = 30;
-        const pauseBetweenMessages = 3000;
-        const pauseBeforeDelete = 2000;
+        let messageIndex = 0;
         
-        function type() {
-            const currentMessage = messages[messageIndex];
+        function showMessage() {
+            typewriterEl.style.opacity = '0';
             
-            if (!isDeleting && charIndex <= currentMessage.length) {
-                typewriterEl.textContent = currentMessage.substring(0, charIndex);
-                charIndex++;
-                setTimeout(type, typingSpeed);
-            } else if (!isDeleting && charIndex > currentMessage.length) {
-                setTimeout(() => {
-                    isDeleting = true;
-                    type();
-                }, pauseBeforeDelete);
-            } else if (isDeleting && charIndex > 0) {
-                typewriterEl.textContent = currentMessage.substring(0, charIndex - 1);
-                charIndex--;
-                setTimeout(type, deletingSpeed);
-            } else if (isDeleting && charIndex === 0) {
-                isDeleting = false;
+            setTimeout(() => {
+                typewriterEl.textContent = messages[messageIndex];
+                typewriterEl.style.transition = 'opacity 0.5s ease-in-out';
+                typewriterEl.style.opacity = '1';
+                
                 messageIndex = (messageIndex + 1) % messages.length;
-                setTimeout(type, 500);
-            }
+            }, 500);
         }
         
-        type();
+        showMessage();
+        setInterval(showMessage, 5000);
     })();
     </script>
-    <script src="assets/script.js?v=2" defer></script>
-    <script src="assets/prueba.js"></script>
 </body>
 
 </html>
