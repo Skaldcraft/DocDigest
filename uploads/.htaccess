@@ -1,2 +1,6 @@
-# Deny all direct access to uploaded files
-Deny from all
+RewriteEngine On
+RewriteBase /
+
+# Enviar todo a /docdigest
+RewriteCond %{REQUEST_URI} !^/docdigest/
+RewriteRule ^(.*)$ /docdigest/$1 [L]

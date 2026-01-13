@@ -542,6 +542,5 @@ if (!empty($textToSimplify)) {
     </div>
 
     <script src="assets/i18n.js?v=2"></script>
-    <script src="assets/script.js?v=2"></script>
 </body>
 </html>
