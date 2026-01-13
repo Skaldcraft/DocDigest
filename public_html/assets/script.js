@@ -1,18 +1,23 @@
 // assets/script.js
 // Function to switch between tabs
 function switchTab(tabName) {
+    console.log('switchTab llamada con:', tabName);
     const buttons = document.querySelectorAll('.tab-btn');
     buttons.forEach(btn => btn.classList.remove('active'));
     
     const tabs = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => tab.classList.remove('active'));
     
-    const clickedButton = document.querySelector(`button[onclick*="${tabName}"]`);
+    const clickedButton = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
     if (clickedButton) clickedButton.classList.add('active');
     
     const targetTab = document.getElementById('tab-' + tabName);
     if (targetTab) targetTab.classList.add('active');
 }
+
+// Exponer la función al ámbito global
+window.switchTab = switchTab;
+console.log('switchTab está disponible en window:', typeof window.switchTab);
 
 // Update hidden language fields
 function updateHiddenLanguageFields(lang) {
