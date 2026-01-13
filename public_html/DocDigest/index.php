@@ -161,7 +161,7 @@
         type();
     })();
     </script>
-    <script src="assets/script.js?v=2"></script>
+    <script src="assets/script.js?v=2" defer></script>
     <script src="assets/prueba.js"></script>
 </body>
 

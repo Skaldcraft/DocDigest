@@ -1,6 +1,6 @@
 RewriteEngine On
 RewriteBase /
 
-# Enviar todo a /docdigest
-RewriteCond %{REQUEST_URI} !^/docdigest/
-RewriteRule ^(.*)$ /docdigest/$1 [L]
+# Redirigir todo al proyecto DocDigest
+RewriteRule ^$ docdigest/ [L]
+RewriteRule (.*) docdigest/$1 [L]
