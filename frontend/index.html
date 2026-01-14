@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocDigest - Plain Language Translator</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <header>
+        <h1>DocDigest</h1>
+        <p id="dynamic-subtitle">DocDigest recognizes most languages and responds in the same language</p>
+    </header>
+
+    <main>
+        <div class="input-tabs">
+            <button class="tab-btn active" data-tab="upload">📄 Upload File</button>
+            <button class="tab-btn" data-tab="image">🖼️ Upload Image</button>
+            <button class="tab-btn" data-tab="paste">📝 Paste Text</button>
+        </div>
+
+        <div id="tab-upload" class="tab-content active">
+            <div id="drop-zone" class="drop-zone">
+                <div class="drop-zone-content">
+                    <p class="drop-icon">📂</p>
+                    <h2>Drag & Drop your document here</h2>
+                    <p>or</p>
+                    <button id="browse-btn" class="secondary-btn">Browse Files</button>
+                    <input type="file" id="file-input" hidden accept=".pdf,.docx,.txt">
+                    <p class="file-types">Supported: PDF, DOCX, TXT</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-image" class="tab-content">
+            <div id="drop-zone-img" class="drop-zone">
+                <div class="drop-zone-content">
+                    <p class="drop-icon">🖼️</p>
+                    <h2>Drag & Drop your image here</h2>
+                    <p>or</p>
+                    <button id="browse-btn-img" class="secondary-btn">Browse Images</button>
+                    <input type="file" id="file-input-img" hidden accept=".png,.jpg,.jpeg">
+                    <p class="file-types">Supported: PNG, JPG, JPEG</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-paste" class="tab-content">
+            <textarea id="text-input" placeholder="Paste your text here..."></textarea>
+            <button id="analyze-text-btn" class="primary-btn">➡️ Get the important info</button>
+        </div>
+
+        <div id="loading-indicator" class="hidden">
+            <div class="spinner"></div>
+            <p>Analyzing document...</p>
+        </div>
+
+        <div id="result-container" class="hidden">
+            <div class="result-header">
+                <h2>💬 Plain‑language summary</h2>
+                <div class="result-actions">
+                    <button id="copy-btn" class="icon-btn" title="Copy to Clipboard">📋 Copy</button>
+                    <button id="download-btn" class="icon-btn" title="Download Text">⬇️ Download</button>
+                    <button id="reset-btn" class="icon-btn" title="Digest Another">🔄 New</button>
+                </div>
+            </div>
+            <pre id="result-text"></pre>
+            <div id="result-disclaimer" class="disclaimer-text hidden"></div>
+        </div>
+    </main>
+
+    <footer>
+        <p>DocDigest does not store your data. All processing is temporary.</p>
+    </footer>
+
+    <script src="script.js?v=3"></script>
+</body>
+
+</html>
