@@ -4,13 +4,22 @@ const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const path = require('path');
 
+// Try to load .env file only if it exists (for local development)
+// In production (Hostinger), use environment variables directly
+const fs = require('fs');
 const envPath = path.join(__dirname, '../config/.env');
-console.log(`Loading .env from: ${envPath}`);
-const result = require('dotenv').config({ path: envPath });
-if (result.error) {
-    console.error("Error loading .env file:", result.error);
+
+if (fs.existsSync(envPath)) {
+    console.log(`Loading .env from: ${envPath}`);
+    const result = require('dotenv').config({ path: envPath });
+    if (result.error) {
+        console.error("Error loading .env file:", result.error);
+    } else {
+        console.log(".env loaded successfully");
+    }
 } else {
-    console.log(".env loaded successfully");
+    console.log("No .env file found, using system environment variables");
+    require('dotenv').config(); // This will use system environment variables
 }
 
 const { analyzeDocumentStream } = require('./modules/ia');
