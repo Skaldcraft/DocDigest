@@ -12,7 +12,7 @@ function getOpenAIClient() {
         }
         const lastFour = apiKey.substring(Math.max(0, apiKey.length - 4));
         console.log(`Using OpenRouter API Key ending in: ...${lastFour}`);
-        
+
         openai = new OpenAI({
             apiKey: apiKey,
             baseURL: 'https://openrouter.ai/api/v1',
@@ -49,7 +49,7 @@ Detect the language of the input document and respond in that SAME language.
 
     try {
         const stream = await getOpenAIClient().chat.completions.create({
-            model: 'deepseek/deepseek-r1',
+            model: 'google/gemini-2.0-flash-exp:free',
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: `Current Date: ${(new Date()).toISOString().split('T')[0]} \n\nDocument Text:\n${text}` }
