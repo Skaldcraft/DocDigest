@@ -1,6 +1,5 @@
 const OpenAI = require('openai');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../../config/.env') });
 
 const apiKey = process.env.DEEPSEEK_API_KEY;
 console.log("IA Module Loaded.");
