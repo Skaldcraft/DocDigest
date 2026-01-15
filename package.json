@@ -1,8 +1,9 @@
 {
   "name": "docdigest",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "backend/server.js",
   "scripts": {
+    "start": "node backend/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -27,8 +28,5 @@
     "openai": "^6.16.0",
     "pdf-parse": "^2.4.5",
     "tesseract.js": "^7.0.0"
-  }
-  "scripts": {
-    "start": "node backend/server.js"
   }
 }
