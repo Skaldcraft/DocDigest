@@ -1,26 +1,29 @@
 const OpenAI = require('openai');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../../config/.env') });
 
-const apiKey = process.env.DEEPSEEK_API_KEY;
-console.log("IA Module Loaded.");
-if (!apiKey) {
-    console.error("CRITICAL: DEEPSEEK_API_KEY is missing in process.env");
-} else {
-    // Mask key for safety log
-    const lastFour = apiKey.substring(Math.max(0, apiKey.length - 4));
-    console.log(`Using OpenRouter API Key ending in: ...${lastFour}`);
-}
+let openai = null; // Lazy initialization
 
-// Initialize OpenAI client pointing to OpenRouter
-const openai = new OpenAI({
-    apiKey: apiKey,
-    baseURL: 'https://openrouter.ai/api/v1',
-    defaultHeaders: {
-        "HTTP-Referer": "http://localhost:3000", // Optional, for OpenRouter rankings
-        "X-Title": "DocDigest", // Optional
+function getOpenAIClient() {
+    if (!openai) {
+        const apiKey = process.env.DEEPSEEK_API_KEY;
+        console.log("Initializing OpenAI client...");
+        if (!apiKey) {
+            throw new Error("CRITICAL: DEEPSEEK_API_KEY is missing in process.env");
+        }
+        const lastFour = apiKey.substring(Math.max(0, apiKey.length - 4));
+        console.log(`Using OpenRouter API Key ending in: ...${lastFour}`);
+        
+        openai = new OpenAI({
+            apiKey: apiKey,
+            baseURL: 'https://openrouter.ai/api/v1',
+            defaultHeaders: {
+                "HTTP-Referer": "http://localhost:3000",
+                "X-Title": "DocDigest",
+            }
+        });
     }
-});
+    return openai;
+}
 
 async function analyzeDocumentStream(text, res) {
     const systemPrompt = `
@@ -31,31 +34,25 @@ Detect the language of the input document and respond in that SAME language.
 1. HEADER: 
    **[DOCUMENT TYPE IN SIMPLE LANGUAGE]**
    ENTITY: [Agency Name]
-
 2. STATUS: Use exactly one (Translated): ✅ Approved, ❌ Denied, ⚠️ Alert, 📅 Appointment, 🧾 Required Docs.
 3. DEADLINES: "**[Deadlines Label]**: [Date]" (Must be highlighted. Convert relative dates to absolute).
 4. KEY DATA: **[Label]**: [Value]
-5. SUMMONS: "**[Summons Label]**: The holder must appear on [day] at [time] (see address in document)."
-6. FINAL NOTES: "**[Notes Label]**: Concise non-urgent info + 'Check original document'."
+5. IMPORTANT DETAILS: Bullet points.
+6. NEXT STEPS: Numbered list.
+7. SIMPLIFIED EXPLANATION: One clear paragraph.
 
-### RULES:
-- LANGUAGE: Use the same language as the document for EVERYTHING (content and labels).
-- STYLE: Extremely simple, direct, and concise (for everyone to understand).
-- EXAMPLES OF STYLE:
-  * Bad: "La persona citada debe presentarse el 20 de enero..." 
-  * Good: "El titular debe presentarse el 20 de enero (ver dirección en documento)."
-  * Bad: "Se permite designar un representante legal con autorización escrita..."
-  * Good: "Si no puede asistir, puede asignar un representante (necesaria autorización por escrito, ver detalles en documento)."
-- HIGHLIGHTING: Always include a clear alert for deadlines or due dates.
-- ANONYMIZE: Never include personal names, IDs, or specific house addresses. Use "the holder" or "the recipient".
-`;
+### OUTPUT FORMAT:
+- Use **bold** for important terms.
+- Keep output concise and scannable.
+- Avoid filler words, be direct.
+    `;
 
     try {
-        const stream = await openai.chat.completions.create({
-            model: "deepseek/deepseek-r1:free", // Standard free ID is usually enough
+        const stream = await getOpenAIClient().chat.completions.create({
+            model: 'deepseek/deepseek-r1',
             messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: `Current Date: ${new Date().toISOString().split('T')[0]}\n\nDocument Content:\n${text}` }
+                { role: "user", content: `Current Date: ${(new Date()).toISOString().split('T')[0]} \n\nDocument Text:\n${text}` }
             ],
             stream: true,
             temperature: 0.3
@@ -68,11 +65,10 @@ Detect the language of the input document and respond in that SAME language.
             }
         }
         res.end();
-
     } catch (error) {
         console.error("AI Error Details:", JSON.stringify(error, null, 2));
-        const errMsg = error.status === 401 ? "Invalid API Key" : "Connection Error with AI Provider (Try again)";
-        res.write(`\n\n[Error: ${errMsg}]`);
+        const errMsg = error.status === 401 ? "Invalid API Key" : "Connection Error with AI Provider";
+        res.write(`\n[Error: ${errMsg}]`);
         res.end();
     }
 }
